@@ -17,7 +17,7 @@ scale_deployments() {
 
     if [ -n $number ]
     then
-        kubectl get deploy --no-headers -l "version=v0.1" | awk '{print $1}' | xargs -I kubectl scale deploy % echo % --replicas=$number
+        kubectl get deploy --no-headers -l "layer=application" | awk '{print $1}' | xargs -I echo -- kubectl scale deploy echo --replicas=$number
     else
         echo "A number of replicas must be passed as an argument to scale_deployments"
         exit 1
