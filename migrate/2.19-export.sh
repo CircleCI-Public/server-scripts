@@ -101,7 +101,7 @@ function export_postgres() {
         sleep 3
     done
 
-    docker exec $TMP_PSQL pg_dumpall -U postgres > circle.sql
+    docker exec $TMP_PSQL pg_dumpall -U postgres -c > circle.sql
     popd
 }
 
