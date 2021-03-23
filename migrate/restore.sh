@@ -101,9 +101,9 @@ function import_vault() {
 
     ### Seal
     kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- vault operator seal
-    kubectl -n $NAMESPACE cp -c vault $VAULT_BU/vault-backup.tar.gz $VAULT_POD:/tmp/vault-backup.tar.gz
-    kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- rm -rf file
-    kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- tar -xvzf /tmp/vault-backup.tar.gz -C /
+    kubectl -n $NAMESPACE cp -v=2 -c vault $VAULT_BU/vault-backup.tar.gz $VAULT_POD:/tmp/vault-backup.tar.gz
+    kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- rm -rf /vault/file/*
+    kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- tar -xvzf /tmp/vault-backup.tar.gz -C /vault/
     kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- rm -f /tmp/vault-backup.tar.gz
 
     ### Unseal
