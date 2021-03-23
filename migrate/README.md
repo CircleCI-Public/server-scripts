@@ -2,10 +2,11 @@
 
 ## Migrating from 2.19.x to 3.0
 
-Run the 2.19-export.sh script as root on a latest 2.19.x install. This will generate a
-.tar.gz you can copy locally and extract. From there you can run the restore.sh script,
-which assumes you have kubectl installed with the correct context defined, including
-the namespace: `kubectl config set-context --current --namespace=$NAMESPACE`
+From this directory, run migrate.sh. You will be prompted for the following:
 
-After the import you will need to upload the signing and encryption keys from
-the `circle-data` directory to the kots admin console.
+1. Latest 2.19.x server information:
+  * username
+  * hostname
+  * SSH key file
+
+2. Kubernetes namespace containing a 3.0 installation.
