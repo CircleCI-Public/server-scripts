@@ -69,18 +69,11 @@ scale_deployments() {
     fi
 }
 
-
-PG_POD=$(kubectl -n $NAMESPACE get pods | grep postgresql | tail -1 | awk '{print $1}')
-MONGO_POD="mongodb-0"
-VAULT_POD="vault-0"
-
-PG_PASSWORD=$(kubectl -n $NAMESPACE get secrets postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
-MONGODB_USERNAME="root"
-MONGODB_PASSWORD=$(kubectl -n $NAMESPACE get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
-
-
 function import_postgres() {
     echo '...importing Postgres...'
+
+    PG_POD=$(kubectl -n $NAMESPACE get pods | grep postgresql | tail -1 | awk '{print $1}')
+    PG_PASSWORD=$(kubectl -n $NAMESPACE get secrets postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
 
     # Note: This import assumes `pg_dumpall -c` was run to drop tables before ...importing into them.
     cat $PG_BU/circle.sql | kubectl -n $NAMESPACE exec -i $PG_POD -- env PGPASSWORD=$PG_PASSWORD psql -U postgres
@@ -88,6 +81,10 @@ function import_postgres() {
 
 function import_mongo() {
     echo "...importing Mongo...";
+
+    MONGO_POD="mongodb-0"
+    MONGODB_USERNAME="root"
+    MONGODB_PASSWORD=$(kubectl -n $NAMESPACE get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
 
     kubectl -n $NAMESPACE exec $MONGO_POD -- mkdir -p /tmp/backups/
     kubectl -n $NAMESPACE cp -v=2 $MONGO_BU $MONGO_POD:/tmp/backups/
@@ -98,6 +95,8 @@ function import_mongo() {
 
 function import_vault() {
     echo "...importing Vault..."
+
+    VAULT_POD="vault-0"
 
     ### Seal
     kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- vault operator seal
