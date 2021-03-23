@@ -32,6 +32,7 @@ function preflight_checks() {
     then
         echo "Syntax: restore.sh <namespace>"
         exit 1
+    fi
     elif [ ! command -v kubectl >/dev/null 2>&1 ]
     then
         echo ... "'kubectl' not found"
@@ -41,15 +42,22 @@ function preflight_checks() {
     then
         echo "Namespace '$NAMESPACE' not found."
         exit 1
+    fi
     elif [ ! -s $PG_BU/circle.sql ]
     then
         echo "Postgres data at '$PG_BU/circle.sql' not found (or is empty)"
         exit 1
+    fi
     elif [[ $(du -sm $MONGO_BU 2>/dev/null | awk '{print $1}') -lt 2 ]] # If the size is under 2MB something went wrong
     then
         echo "Mongo data at '$MONGO_BU' not found (or is empty)"
         exit 1
-    elif vault
+    fi
+    elif [[ $(du -sm $VAULT_BU 2>/dev/null | awk '{print $1}') -lt 2 ]]
+    then
+        echo "Vault data at '$VAULT_BU' not found (or is empty)"
+        exit 1
+    fi
 }
 
 # Function to scale the deployments in a CCI cluster
