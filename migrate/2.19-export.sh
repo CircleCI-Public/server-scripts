@@ -3,18 +3,15 @@
 ##
 # CircleCI Database Export Script
 #
-#   This script is for installations running CircleCI server 2.0 or higher.
+#   This script is for installations running the latest CircleCI server 2.19.x.
 #
 #   This script will create a tar ball of the PostgreSQL and Mongo databases.
 #   This should generally be used when you are planning on switching from
 #   the default embedded databases to an external database source.
 #
 #   This script will also archive application data for:
-#   Rabbitmq
-#   Replicated
 #   Vault
-#   Circle customizations
-#   File server data
+#   CircleCI encryption & signing keys
 #
 #   This script should be run as root from the CircleCI Services Box. CircleCI and any
 #   additional postgresql or mongo containers should be shut down to eliminate
@@ -230,7 +227,6 @@ function compress() {
 function circleci_database_export() {
     echo "Starting CircleCI Database Export"
 
-    init_options $ARGS
     preflight_checks
 
     start_mongo
