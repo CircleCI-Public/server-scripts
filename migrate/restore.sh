@@ -1,21 +1,16 @@
 #!/bin/bash
 
 ##
-# CircleCI Database Export Script
+# CircleCI Database Import Script
 #
-#   This script is for installations running the latest CircleCI server 2.19.x.
+#   * Intended only for use with installations of CircleCI Server 3.0.
 #
-#   This script will create a tar ball of the PostgreSQL and Mongo databases.
-#   This should generally be used when you are planning on switching from
-#   the default embedded databases to an external database source.
+#   This script will import data from a CircleCI Server 2.19.x instance
+#   given the tarball called `circleci_export.tar.gz` has already been
+#   extracted.
 #
-#   This script will also archive application data for:
-#   Vault
-#   CircleCI encryption & signing keys
-#
-#   This script should be run as root from the CircleCI Services Box. CircleCI and any
-#   additional postgresql or mongo containers should be shut down to eliminate
-#   any chances of data corruption.
+#   Application deployments will be scaled to zero and then to one.
+#   Please note a replica of 1 is not desirable for output-processor.
 ##
 
 set -e
@@ -26,13 +21,18 @@ VAULT_BU="${BACKUP_DIR}/circleci-vault"
 MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
 PG_BU="${BACKUP_DIR}/circleci-pg-export"
 
+NAMESPACE=$1
 
 ##
 # Preflight checks
 #   make sure the namespace exists
 ##
 function preflight_checks() {
-    if [ ! command -v kubectl >/dev/null 2>&1 ]
+    if [ -z $NAMESPACE ]
+    then
+        echo "Syntax: restore.sh <namespace>"
+        exit 1
+    elif [ ! command -v kubectl >/dev/null 2>&1 ]
     then
         echo ... "'kubectl' not found"
         exit 1
@@ -45,12 +45,10 @@ function preflight_checks() {
     then
         echo "Postgres data at '$PG_BU/circle.sql' not found (or is empty)"
         exit 1
-    fi
     elif [[ $(du -sm $MONGO_BU 2>/dev/null | awk '{print $1}') -lt 2 ]] # If the size is under 2MB something went wrong
     then
         echo "Mongo data at '$MONGO_BU' not found (or is empty)"
         exit 1
-    fi
     elif vault
 }
 
