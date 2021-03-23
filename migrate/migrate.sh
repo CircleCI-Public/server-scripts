@@ -1,12 +1,7 @@
 #!/bin/bash
 
-exec 2>stderr.log
-
 echo "Note: this script assumes passwordless sudo access on the services box."
 echo "Additionally, the 2.19.x application will be stopped and not started back up."
-
-echo ""
-echo "Error logs of this process will be stored in stderr.log."
 
 echo ""
 echo ""

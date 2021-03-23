@@ -32,28 +32,23 @@ function preflight_checks() {
     then
         echo "Syntax: restore.sh <namespace>"
         exit 1
-    fi
     elif [ ! command -v kubectl >/dev/null 2>&1 ]
     then
         echo ... "'kubectl' not found"
         exit 1
-    fi
-    elif [ -z $(kubectl get namespace | grep $NAMESPACE) ]
+    elif [ $(kubectl get namespace --no-headers | grep $NAMESPACE | wc -w) -eq 0 ]
     then
         echo "Namespace '$NAMESPACE' not found."
         exit 1
-    fi
     elif [ ! -s $PG_BU/circle.sql ]
     then
         echo "Postgres data at '$PG_BU/circle.sql' not found (or is empty)"
         exit 1
-    fi
     elif [[ $(du -sm $MONGO_BU 2>/dev/null | awk '{print $1}') -lt 2 ]] # If the size is under 2MB something went wrong
     then
         echo "Mongo data at '$MONGO_BU' not found (or is empty)"
         exit 1
-    fi
-    elif [[ $(du -sm $VAULT_BU 2>/dev/null | awk '{print $1}') -lt 2 ]]
+    elif [[ $(du -s $VAULT_BU 2>/dev/null | awk '{print $1}') -lt 5 ]]
     then
         echo "Vault data at '$VAULT_BU' not found (or is empty)"
         exit 1
@@ -88,16 +83,16 @@ function import_postgres() {
     echo '...importing Postgres...'
 
     # Note: This import assumes `pg_dumpall -c` was run to drop tables before ...importing into them.
-    cat $PG_BU/circle.sql | kubectl -n $NAMESPACE exec -i $PG_POD -- env PGPASSWORD='' psql -U postgres
+    cat $PG_BU/circle.sql | kubectl -n $NAMESPACE exec -i $PG_POD -- env PGPASSWORD=$PG_PASSWORD psql -U postgres
 }
 
 function import_mongo() {
     echo "...importing Mongo...";
 
     kubectl -n $NAMESPACE exec $MONGO_POD -- mkdir -p /tmp/backups/
-    kubectl -n $NAMESPACE cp $MONGO_BU $MONGO_POD:/tmp/backups/
+    kubectl -n $NAMESPACE cp -v=2 $MONGO_BU $MONGO_POD:/tmp/backups/
 
-    kubectl -n $NAMESPACE exec $MONGO_POD -- mongorestore --drop -u $MONGODB_USERNAME -p $MONGODB_PASSWORD --authenticationDatabase admin /tmp/backups/mongo/$db/;
+    kubectl -n $NAMESPACE exec $MONGO_POD -- mongorestore --drop -u $MONGODB_USERNAME -p $MONGODB_PASSWORD --authenticationDatabase admin /tmp/backups/circleci-mongo-export/;
     kubectl -n $NAMESPACE exec $MONGO_POD -- rm -rf /tmp/backups
 }
 
@@ -113,7 +108,6 @@ function import_vault() {
 
     ### Unseal
     kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- sh -c 'rm -rf /vault/file/sys/expire/id/auth/token/create/* && for k in $(head -n 3 /vault/file/vault-init-out | sed "s/^.*: //g"); do vault operator unseal "$k"; done; vault login $(grep "Root" /vault/file/vault-init-out | sed "s/^.*: //g"); vault token create -period="768h" > /vault/file/client-token; grep "token " /vault/file/client-token | sed "s/^token\W*//g" > /vault/__restricted/client-token'
-
 }
 
 function key_reminder() {
