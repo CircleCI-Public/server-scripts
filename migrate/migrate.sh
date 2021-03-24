@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DIR=$(dirname $0)
+
 echo "Note: this script assumes passwordless sudo access on the services box."
 echo "Additionally, the 2.19.x application will be stopped and not started back up."
 
@@ -29,7 +31,7 @@ echo "...stopping the application"
 ssh -i $KEY_FILE -t $HOST -- "replicatedctl app stop"
 
 echo "...copying export script remotely"
-scp -i $KEY_FILE 2.19-export.sh ${HOST}:
+scp -i $KEY_FILE ${DIR}/2.19-export.sh ${HOST}:
 
 echo "...sleeping while the application stops"
 sleep 60
@@ -43,4 +45,4 @@ scp -i $KEY_FILE ${HOST}:circleci_export.tar.gz .
 echo "...extracting export"
 tar zxvf circleci_export.tar.gz
 
-bash restore.sh $NAMESPACE
+bash ${DIR}/restore.sh $NAMESPACE
