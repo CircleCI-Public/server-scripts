@@ -109,6 +109,13 @@ function import_vault() {
     kubectl -n $NAMESPACE exec $VAULT_POD -c vault -- sh -c 'rm -rf /vault/file/sys/expire/id/auth/token/create/* && for k in $(head -n 3 /vault/file/vault-init-out | sed "s/^.*: //g"); do vault operator unseal "$k"; done; vault login $(grep "Root" /vault/file/vault-init-out | sed "s/^.*: //g"); vault token create -period="768h" > /vault/file/client-token; grep "token " /vault/file/client-token | sed "s/^token\W*//g" > /vault/__restricted/client-token'
 }
 
+function reinject_bottoken() {
+    JOB_NAME=$(kubectl -n $NAMESPACE get jobs -o json | jq '.items[0].metadata.name' -r)
+    echo "found job $JOB_NAME"
+    ### Re-run the job, but also remove some auto generated fields that cannot be re-applied
+    kubectl -n $NAMESPACE get job $JOB_NAME -o json | jq 'del(.spec.template.metadata.labels)' | jq 'del(.spec.selector)' | kubectl replace --force -f -
+}
+
 function key_reminder() {
     echo ""
     echo "###################################"
@@ -135,6 +142,8 @@ function circleci_database_import() {
     import_postgres
     import_mongo
     import_vault
+
+    reinject_bottoken
 
     echo "...scaling application deployments to 1..."
     scale_deployments 1
