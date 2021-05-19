@@ -37,7 +37,7 @@ echo "...sleeping while the application stops"
 sleep 60
 
 #echo "...initiating export"
-ssh -i $KEY_FILE -t $HOST -- "sudo bash 2.19-export.sh"
+ssh -i $KEY_FILE -t $HOST -- "sudo bash 2.19-export-vault.sh"
 
 echo "...copying export locally"
 scp -i $KEY_FILE ${HOST}:circleci_export_vault.tar.gz .
