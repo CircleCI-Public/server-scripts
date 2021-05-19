@@ -1,8 +1,9 @@
 #!/bin/bash
 
+##
+# include scripts
+##
 source 3.0-preflight.sh
-source 3.0-postgres.sh
-source 3.0-mongo.sh
 source 3.0-vault.sh
 source 3.0-bottoken
 source 3.0-scale
@@ -26,15 +27,13 @@ set -e
 BACKUP_DIR="circleci_export"
 KEY_BU="${BACKUP_DIR}/circle-data"
 VAULT_BU="${BACKUP_DIR}/circleci-vault"
-MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
-PG_BU="${BACKUP_DIR}/circleci-pg-export"
 
 NAMESPACE=$1
 
 function circleci_database_import() {
-    echo "Starting CircleCI Database Import"
+    echo "Starting CircleCI Vault Import"
 
-    preflight_checks
+    vault_preflight_checks
 
     echo "...scaling application deployments to 0..."
     scale_deployments 0
@@ -42,8 +41,6 @@ function circleci_database_import() {
     # wait one minute for pods to scale down
     sleep 60
 
-    import_postgres
-    import_mongo
     import_vault
 
     reinject_bottoken
@@ -52,6 +49,7 @@ function circleci_database_import() {
     scale_deployments 1
 
     echo "CircleCI Server Import Complete"
+
     key_reminder
 }
 

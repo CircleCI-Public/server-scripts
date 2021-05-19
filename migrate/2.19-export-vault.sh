@@ -50,17 +50,7 @@ VAULT_BU="circleci-vault"
 function circleci_database_export() {
     echo "Starting CircleCI Database Export"
 
-    preflight_checks
-
-    start_mongo
-    export_mongo
-    check_mongo
-    stop_mongo
-
-    start_postgres
-    export_postgres
-    check_postgres
-    stop_postgres
+    vault-preflight_checks
 
     archive_data
 
