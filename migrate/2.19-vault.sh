@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ##
-# Persist non-exportable data
 # Vault
 # CircleCI encryption & signing keys
 ##
@@ -20,7 +19,7 @@ function archive_data() {
 }
 
 ##
-# Create tar ball with the postgreSQL and Mongo exports
+# Create tar ball with the keys and Vault, PostgreSQL and Mongo exports
 ##
 function compress() {
     echo ... compressing exported files
