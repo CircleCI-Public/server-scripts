@@ -13,6 +13,7 @@
 
 DIR=$(dirname $0)
 SKIP_DATABASE_IMPORT="false"
+ARGS="${@:1}"
 
 # Init
 
@@ -51,6 +52,8 @@ init_options() {
     fi
 }
 
+init_options $ARGS
+
 echo "Note: this script assumes passwordless sudo access on the services box."
 echo "Additionally, the 2.19.x application will be stopped and not started back up."
 
@@ -60,8 +63,8 @@ echo ""
 echo "We need some information before we can begin."
 echo "First, let's start with your 2.19.x installation."
 read -p 'Hostname: ' HOSTNAME
-read -p 'SSH key file: ' KEY_FILE
-read -p '(SSH) Username: ' USERNAME
+read -p 'SSH Key File: ' KEY_FILE
+read -p 'SSH Username: ' USERNAME
 HOST="${USERNAME}@${HOSTNAME}"
 
 echo "Now we need the namespace that has CircleCI Server 3.0 installed."

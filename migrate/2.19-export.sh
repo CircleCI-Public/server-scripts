@@ -42,6 +42,8 @@ TMP_PSQL="circle-postgres-export"
 KEY_BU="circle-data"
 VAULT_BU="circleci-vault"
 
+ARGS="${@:1}"
+
 # Init
 
 help_init_options() {
@@ -58,7 +60,7 @@ init_options() {
     key="${1}"
     case $key in
         -s|--skip-databases)
-            SKIP_DATABASE_IMPORT="true"
+            SKIP_DATABASE_EXPORT="true"
             shift # past argument
         ;;
         -h|--help)
@@ -87,7 +89,7 @@ function circleci_database_export() {
 
     preflight_checks
 
-    if [ ! "$SKIP_DATABASE_IMPORT" = "true" ];
+    if [ ! "$SKIP_DATABASE_EXPORT" = "true" ];
     then
         start_mongo
         export_mongo
@@ -110,4 +112,5 @@ function circleci_database_export() {
     echo "Your exported files can be found at $(pwd)/circleci_export.tar.gz"
 }
 
+init_options $ARGS
 circleci_database_export

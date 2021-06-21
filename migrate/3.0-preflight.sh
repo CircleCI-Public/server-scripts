@@ -13,6 +13,10 @@ function preflight_checks() {
     then
         echo ... "'kubectl' not found"
         exit 1
+    elif [ ! command -v jq >/dev/null 2>&1 ]
+    then
+        echo ... "'jq' not found"
+        exit 1
     elif [ $(kubectl get namespace --no-headers | grep $NAMESPACE | wc -w) -eq 0 ]
     then
         echo "Namespace '$NAMESPACE' not found."
@@ -21,7 +25,7 @@ function preflight_checks() {
     then
         echo "Postgres data at '$PG_BU/circle.sql' not found (or is empty)"
         exit 1
-    elif [[ ! "$SKIP_DATABASE_IMPORT" = "true" && $(du -sm $MONGO_BU 2>/dev/null | awk '{print $1}') -lt 2 ]] # If the size is under 2MB something went wrong
+    elif [[ ! "$SKIP_DATABASE_IMPORT" = "true" && ! -s $MONGO_BU/circle_ghe/organizations.bson ]]
     then
         echo "Mongo data at '$MONGO_BU' not found (or is empty)"
         exit 1

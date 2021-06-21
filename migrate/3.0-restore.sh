@@ -15,19 +15,23 @@
 
 set -e
 
-source 3.0-preflight.sh
-source 3.0-postgres.sh
-source 3.0-mongo.sh
-source 3.0-vault.sh
-source 3.0-bottoken
-source 3.0-scale
-source 3.0-key
+DIR=$(dirname $0)
+
+source $DIR/3.0-preflight.sh
+source $DIR/3.0-postgres.sh
+source $DIR/3.0-mongo.sh
+source $DIR/3.0-vault.sh
+source $DIR/3.0-bottoken.sh
+source $DIR/3.0-scale.sh
+source $DIR/3.0-key.sh
 
 BACKUP_DIR="circleci_export"
 KEY_BU="${BACKUP_DIR}/circle-data"
 VAULT_BU="${BACKUP_DIR}/circleci-vault"
 MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
 PG_BU="${BACKUP_DIR}/circleci-pg-export"
+
+ARGS="${@:1}"
 
 # Init
 
@@ -57,7 +61,7 @@ init_options() {
             shift
         ;;
         *)          # namespace
-            NAMESPACE=${1}
+            NAMESPACE=${1} # the export is crucial for scoping
             shift
         ;;
     esac
@@ -98,4 +102,5 @@ function circleci_database_import() {
     key_reminder
 }
 
+init_options $ARGS
 circleci_database_import
