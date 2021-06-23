@@ -3,7 +3,7 @@
 ##
 # CircleCI Server Migration Script
 #
-#   This script is for installations migratinf rom the latest CircleCI Server 2.19.x
+#   This script is for installations migrating from the latest CircleCI Server 2.19.x
 #   to CircleCI Server 3.0.
 #
 #   This script will create a tar ball of CircleCI encryption & signing keys,
@@ -12,7 +12,7 @@
 ##
 
 DIR=$(dirname $0)
-SKIP_DATABASE_IMPORT="false"
+SKIP_DATABASE_IMPORT=""
 ARGS="${@:1}"
 
 # Init
