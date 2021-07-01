@@ -37,7 +37,10 @@ ARGS="${@:1}"
 
 help_init_options() {
     # Help message for Init menu
-    echo "  -s|--skip-databases           Skip importing Postgres and Mongodb data locally"
+    echo "  -s|--skip-databases           Skip migrating Postgres and Mongodb data"
+    echo "  -p|--skip-postgres            Skip migrating Postgres data"
+    echo "  -m|--skip-mongo               Skip migrating Mongodb data"
+    echo "  -v|--skip-vault               Skip migrating Vault data"
     echo "  -h|--help                     Print help text"
 }
 
@@ -49,8 +52,21 @@ init_options() {
     key="${1}"
     case $key in
         -s|--skip-databases)
-            SKIP_DATABASE_IMPORT="true"
-            shift
+            SKIP_POSTGRES="true"
+            SKIP_MONGO="true"
+            shift # past argument
+        ;;
+        -p|--skip-postgres)
+            SKIP_POSTGRES="true"
+            shift # past argument
+        ;;
+        -m|--skip-mongo)
+            SKIP_MONGO="true"
+            shift # past argument
+        ;;
+        -v|--skip-vault)
+            SKIP_VAULT="true"
+            shift # past argument
         ;;
         -h|--help)
             help_init_options
@@ -61,7 +77,7 @@ init_options() {
             shift
         ;;
         *)          # namespace
-            NAMESPACE=${1} # the export is crucial for scoping
+            NAMESPACE=${1}
             shift
         ;;
     esac
@@ -79,24 +95,40 @@ function circleci_database_import() {
 
     preflight_checks
 
-    echo "...scaling application deployments to 0..."
-    scale_deployments 0
-
-    # wait one minute for pods to scale down
-    sleep 60
-
-    if [ ! "$SKIP_DATABASE_IMPORT" = "true" ];
+    if [ ! "$SKIP_MONGO $SKIP_POSTGRES $SKIP_VAULT" = "true true true" ];
     then
-        import_postgres
+        echo "...scaling application deployments to 0..."
+        scale_deployments 0
+        
+        # wait one minute for pods to scale down
+        sleep 60
+    fi
+
+    if [ ! "$SKIP_MONGO" = "true" ];
+    then
+        MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
         import_mongo
     fi
     
-    import_vault
+    if [ ! "$SKIP_POSTGRES" = "true" ];
+    then
+        PG_BU="${BACKUP_DIR}/circleci-pg-export"
+        import_postgres
+    fi
 
-    reinject_bottoken
+    if [ ! "$SKIP_VAULT" = "true" ];
+    then
+        VAULT_BU="${BACKUP_DIR}/circleci-vault"
+        import_vault
+    fi
 
-    echo "...scaling application deployments to 1..."
-    scale_deployments 1
+    if [ ! "$SKIP_MONGO $SKIP_POSTGRES $SKIP_VAULT" = "true true true" ];
+    then
+        reinject_bottoken
+
+        echo "...scaling application deployments to 1..."
+        scale_deployments 1
+    fi
 
     echo "CircleCI Server Import Complete"
     key_reminder
