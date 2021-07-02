@@ -4,11 +4,11 @@
 # CircleCI Server Migration Script
 #
 #   This script is for installations migrating from the latest CircleCI Server 2.19.x
-#   to CircleCI Server 3.0.
+#   to CircleCI Server 3.x.
 #
 #   This script will create a tar ball of CircleCI encryption & signing keys,
 #   Vault, PostgreSQL and Mongo databases. The tar ball will be copied locally,
-#   extracted, and passed through kubectl commands to the 3.0 installation.
+#   extracted, and passed through kubectl commands to the 3.x installation.
 ##
 
 DIR=$(dirname $0)
@@ -127,7 +127,7 @@ HOST="${USERNAME}@${HOSTNAME}"
 
 if [ -z $NAMESPACE ];
 then
-    echo "Now we need the namespace that has CircleCI Server 3.0 installed."
+    echo "Now we need the namespace that has CircleCI Server 3.x installed."
     read -p 'Namespace: ' NAMESPACE
 fi
 

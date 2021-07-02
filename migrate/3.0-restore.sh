@@ -3,7 +3,7 @@
 ##
 # CircleCI Database Import Script
 #
-#   * Intended only for use with installations of CircleCI Server 3.0.
+#   * Intended only for use with installations of CircleCI Server 3.x.
 #
 #   This script will import data from a CircleCI Server 2.19.x instance
 #   given the tarball called `circleci_export.tar.gz` has already been
@@ -108,6 +108,8 @@ function circleci_database_import() {
     then
         MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
         import_mongo
+
+        reinject_bottoken
     fi
     
     if [ ! "$SKIP_POSTGRES" = "true" ];
@@ -124,8 +126,6 @@ function circleci_database_import() {
 
     if [ ! "$SKIP_MONGO $SKIP_POSTGRES $SKIP_VAULT" = "true true true" ];
     then
-        reinject_bottoken
-
         echo "...scaling application deployments to 1..."
         scale_deployments 1
     fi
