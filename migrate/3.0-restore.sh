@@ -131,6 +131,8 @@ function circleci_database_import() {
     fi
 
     echo "CircleCI Server Import Complete"
+
+    scale_reminder
     key_reminder
 }
 
