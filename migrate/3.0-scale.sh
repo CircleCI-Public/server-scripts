@@ -13,3 +13,9 @@ scale_deployments() {
         exit 1
     fi
 }
+
+scale_reminder() {
+    echo "Please note all deployments have been scaled to 1."
+    echo "This is not necessarily desirable in all scenarios."
+    echo "Consider scaling some deployments for high availability ."
+}
