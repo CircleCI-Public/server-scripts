@@ -22,7 +22,7 @@ help_init_options() {
     echo "  -p|--skip-postgres            Skip migrating Postgres data"
     echo "  -m|--skip-mongo               Skip migrating Mongodb data"
     echo "  -v|--skip-vault               Skip migrating Vault data"
-    echo "     --hostname                 Hostname of the 2.x installation"
+    echo "     --host                     Hostname of the 2.x installation"
     echo "     --key                      Path to 2.x SSH key file"
     echo "     --user                     Username for 2.x SSH access"
     echo "     --namespace                Namespace of the 3.x install"
@@ -53,9 +53,9 @@ init_options() {
             SKIP_VAULT="--skip-vault"
             shift # past argument
         ;;
-        --hostname)
+        --host)
             shift # need the next arg
-            HOSTNAME=$1
+            HOST=$1
             shift # past argument
         ;;
         --key)
@@ -102,15 +102,15 @@ echo "Additionally, the 2.19.x application will be stopped and not started back 
 echo ""
 echo ""
 
-if [[ -z $HOSTNAME || -z $KEY_FILE || -z $USERNAME ]];
+if [[ -z $HOST || -z $KEY_FILE || -z $USERNAME ]];
 then
     echo "We need some information before we can begin."
     echo "First, let's start with your 2.19.x installation."
 fi
 
-if [ -z $HOSTNAME ];
+if [ -z $HOST ];
 then
-    read -p 'Hostname: ' HOSTNAME
+    read -p 'Hostname: ' HOST
 fi
 
 if [ -z $KEY_FILE ];
@@ -123,7 +123,7 @@ then
     read -p 'SSH Username: ' USERNAME
 fi
 
-HOST="${USERNAME}@${HOSTNAME}"
+HOST="${USERNAME}@${HOST}"
 
 if [ -z $NAMESPACE ];
 then
