@@ -1,0 +1,21 @@
+version: '2.1'
+orbs:
+  shellcheck: circleci/shellcheck@2.2.4
+  slack: circleci/slack@4.2.1
+workflows:
+  server-scripts-ci:
+    jobs:
+      - shellcheck/check:
+          dir: .
+          post-steps:
+            - slack-notify-on-failure
+
+commands:
+  slack-notify-on-failure:
+    steps:
+      - run:
+          command: apk add curl jq
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+          branch_pattern: main
