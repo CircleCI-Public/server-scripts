@@ -6,6 +6,7 @@ workflows:
   server-scripts-ci:
     jobs:
       - shellcheck/check:
+          context: server-slack-notifications
           dir: .
           post-steps:
             - slack-notify-on-failure
