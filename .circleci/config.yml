@@ -12,10 +12,13 @@ workflows:
             - slack-notify-on-failure
 
 commands:
-  slack-notify-on-failure:
+  install-slack-deps:
     steps:
       - run:
           command: apk add curl jq
+  slack-notify-on-failure:
+    steps:
+      - install-slack-deps
       - slack/notify:
           event: fail
           template: basic_fail_1
