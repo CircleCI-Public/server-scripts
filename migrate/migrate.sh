@@ -89,7 +89,7 @@ init_options() {
 
     if [ ${#POSITIONAL[@]} -gt 0 ]
     then
-        echo ${#POSITIONAL[@]}
+        echo ${POSITIONAL[@]}
         help_init_options
         exit 1
     fi
@@ -97,7 +97,8 @@ init_options() {
     SKIP="${SKIP_POSTGRES} ${SKIP_MONGO} ${SKIP_VAULT}"
 }
 
-init_options "$ARGS"
+# shellcheck disable=SC2086
+init_options $ARGS
 
 
 echo "Note: this script assumes passwordless sudo access on the services box."

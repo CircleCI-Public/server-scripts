@@ -144,5 +144,6 @@ function circleci_database_export() {
     echo "Your exported files can be found at $(pwd)/circleci_export.tar.gz"
 }
 
-init_options "$ARGS"
+# shellcheck disable=SC2086
+init_options $ARGS
 circleci_database_export

@@ -147,5 +147,7 @@ function circleci_database_import() {
     key_reminder
 }
 
-init_options "$ARGS"
+
+# shellcheck disable=SC2086
+init_options $ARGS
 circleci_database_import
