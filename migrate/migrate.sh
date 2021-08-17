@@ -11,8 +11,8 @@
 #   extracted, and passed through kubectl commands to the 3.x installation.
 ##
 
-DIR=$(dirname $0)
-ARGS="${@:1}"
+DIR=$(dirname "$0")
+ARGS="${*:1}"
 
 # Init
 
@@ -78,7 +78,10 @@ init_options() {
             exit 0
         ;;
         *)    # unknown option
-            POSITIONAL+=("${1}") # save it in an array for later
+            if [ -n "$1" ] ;
+            then
+                POSITIONAL+=("${1}") # save it in an array for later
+            fi
             shift # past argument
         ;;
     esac
@@ -86,6 +89,7 @@ init_options() {
 
     if [ ${#POSITIONAL[@]} -gt 0 ]
     then
+        echo ${POSITIONAL[@]}
         help_init_options
         exit 1
     fi
@@ -93,6 +97,7 @@ init_options() {
     SKIP="${SKIP_POSTGRES} ${SKIP_MONGO} ${SKIP_VAULT}"
 }
 
+# shellcheck disable=SC2086
 init_options $ARGS
 
 
@@ -108,27 +113,27 @@ then
     echo "First, let's start with your 2.19.x installation."
 fi
 
-if [ -z $HOST ];
+if [ -z "$HOST" ];
 then
-    read -p 'Hostname: ' HOST
+    read -r -p 'Hostname: ' HOST
 fi
 
-if [ -z $KEY_FILE ];
+if [ -z "$KEY_FILE" ];
 then
-    read -p 'SSH Key File: ' KEY_FILE
+    read -r -p 'SSH Key File: ' KEY_FILE
 fi
 
-if [ -z $USERNAME ];
+if [ -z "$USERNAME" ];
 then
-    read -p 'SSH Username: ' USERNAME
+    read -r -p 'SSH Username: ' USERNAME
 fi
 
 HOST="${USERNAME}@${HOST}"
 
-if [ -z $NAMESPACE ];
+if [ -z "$NAMESPACE" ];
 then
     echo "Now we need the namespace that has CircleCI Server 3.x installed."
-    read -p 'Namespace: ' NAMESPACE
+    read -r -p 'Namespace: ' NAMESPACE
 fi
 
 echo ""
@@ -141,24 +146,24 @@ echo ""
 echo "## CircleCI Server Migration ##"
 
 echo "...copying export scripts remotely"
-scp -i $KEY_FILE ${DIR}/2.19-*.sh ${HOST}:
+scp -i "$KEY_FILE" "${DIR}"/2.19-*.sh "${HOST}":
 
 if [ ! "$SKIP" = "--skip-postgres --skip-mongo --skip-vault" ];
 then
     echo "...stopping the application"
-    ssh -i $KEY_FILE -t $HOST -- "replicatedctl app stop"
+    ssh -i "$KEY_FILE" -t "${HOST}" -- "replicatedctl app stop"
     
     echo "...sleeping while the application stops"
     sleep 60
 fi
 
 echo "...initiating export"
-ssh -i $KEY_FILE -t $HOST -- "sudo bash 2.19-export.sh ${SKIP}"
+ssh -i "$KEY_FILE" -t "${HOST}" -- "sudo bash 2.19-export.sh ${SKIP}"
 
 echo "...copying export locally"
-scp -i $KEY_FILE ${HOST}:circleci_export.tar.gz .
+scp -i "$KEY_FILE" "${HOST}":circleci_export.tar.gz .
 
 echo "...extracting export"
 tar zxvf circleci_export.tar.gz
 
-bash ${DIR}/3.0-restore.sh $SKIP $NAMESPACE
+bash "${DIR}"/3.0-restore.sh "$SKIP" "$NAMESPACE"

@@ -9,5 +9,6 @@ function key_reminder() {
     echo ""
     echo "You may find your keys here:  $(pwd)/${KEY_BU}"
 
-    ls -lh $KEY_BU | grep -v ^total
+    # shellcheck disable=SC2010
+    ls -lh "$KEY_BU" | grep -v ^total
 }

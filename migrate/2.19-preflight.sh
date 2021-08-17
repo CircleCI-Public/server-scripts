@@ -7,7 +7,7 @@
 ##
 function preflight_checks() {
 
-    if [ $(id -u) -ne 0 ]
+    if [ "$(id -u)" -ne 0 ]
     then
         echo "Please run this script as root"
         exit 1
