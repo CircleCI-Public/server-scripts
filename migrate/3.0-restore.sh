@@ -110,6 +110,9 @@ function circleci_database_import() {
     then
         echo "...scaling application deployments to 0..."
         scale_deployments 0
+
+        # delete postgres to clear any remaining connections
+        kubectl delete pod -l app.kubernetes.io/name=postgresql -n "$NAMESPACE"
         
         # wait one minute for pods to scale down
         sleep 60
