@@ -89,7 +89,7 @@ init_options() {
 
     if [ ${#POSITIONAL[@]} -gt 0 ]
     then
-        echo ${POSITIONAL[@]}
+        echo "${POSITIONAL[@]}"
         help_init_options
         exit 1
     fi
