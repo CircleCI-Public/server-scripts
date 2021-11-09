@@ -99,6 +99,11 @@ init_options() {
 # shellcheck disable=SC2086
 init_options $ARGS
 
+if [ ! "$(which jq)" ]
+then
+    echo ... "'jq' not found. Please install jq locally in order to run this script."
+    exit 1
+fi
 
 echo "Note: this script assumes passwordless sudo access on the services box."
 echo "Additionally, the 2.19.x application will be stopped and not started back up."
