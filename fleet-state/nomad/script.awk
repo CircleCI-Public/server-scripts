@@ -1,0 +1,31 @@
+BEGIN {
+    TOTAL_CPU_USED = 0;
+    TOTAL_CPU_AVAILABLE = 0;
+    TOTAL_RAM_USED = 0;
+    TOTAL_RAM_AVAILABLE = 0;
+}
+
+NR % 2 == 1 {
+    print "ID:",$3;
+} 
+!(NR % 2) {
+    split($1,CPU,"/")
+
+    CPU_USED = CPU[1];
+    TOTAL_CPU_USED += CPU_USED;
+    CPU_AVAILABLE = CPU[2];
+    TOTAL_CPU_AVAILABLE += CPU_AVAILABLE;
+    
+    split($4,RAM,"/");
+
+    RAM_USED = $3 * 1024**(RAM[1] == "GiB" ? 1 : 0);
+    TOTAL_RAM_USED += RAM_USED;
+    RAM_AVAILABLE = RAM[2]*1024;
+    TOTAL_RAM_AVAILABLE += RAM_AVAILABLE;
+
+    print "CPU:",CPU_USED,"/",CPU_AVAILABLE,"MHz\r\nRAM:",RAM_USED/1024,"/",RAM_AVAILABLE/1024,"GB","\r\n----";
+}
+
+END {
+    print "Total CPU:",TOTAL_CPU_USED,"/",TOTAL_CPU_AVAILABLE,"MHz\r\nTotal RAM:",TOTAL_RAM_USED/1024,"/",TOTAL_RAM_AVAILABLE/1024,"GB";
+}
