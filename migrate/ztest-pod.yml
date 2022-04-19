@@ -1,16 +1,18 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: z-test-pod
+  name: ztest
+  labels:
+    app: ztest  
 spec:
   containers:
-    - name: test
+    - name: ztest
       image: busybox
       command: [ "/bin/sh", "-c", "sleep 7200" ]
       volumeMounts:
-      - mountPath: "/vault/file" # Folder in pod mounting nfsclaim
-        name: mypd
+      - mountPath: "/tmp/vault/file" # Folder in pod mounting nfsclaim
+        name: myvol
   volumes:
-    - name: mypd             # volume name the container can mount
+    - name: myvol             # volume name the container can mount
       persistentVolumeClaim:   # Source of storage
         claimName: data-vault-0  # name of pvc created
