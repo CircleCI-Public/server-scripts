@@ -6,11 +6,13 @@ function import_vault() {
     echo "...importing Vault..."
 
     VAULT_POD="vault-0"
+    VAULT_PVC="data-vault-0"
     TEST_POD="ztest"
     TEST_POD_YAML="$DIR/ztest-pod.yml"
+    VAULT_PVC_YAML="$DIR/vault-pvc.yml"
     VAULT_BU="${BACKUP_DIR}/circleci-vault"
 
-    ### Seal
+    ## Seal
     kubectl -n "$NAMESPACE" exec "$VAULT_POD" -c vault -- vault operator seal
 
     # Scale down vault
@@ -23,6 +25,17 @@ function import_vault() {
         sleep 15
     done
 
+    # Fetching the PVC info
+    VOL_SIZE=`kubectl get pvc/$VAULT_PVC -o=jsonpath="{.status.capacity.storage}"`
+    echo "Volume size of $VAULT_PVC is - $VOL_SIZE"
+
+    # Deleting the PVC
+    kubectl delete pvc/$VAULT_PVC
+
+    # Recreating the PVC
+    cat "$VAULT_PVC_YAML" | sed  "s/VOLUME_SIZE/$VOL_SIZE/" | kubectl -n "$NAMESPACE" apply -f -
+    kubectl get pvc/$VAULT_PVC
+
     # Creating a test pod
     kubectl -n "$NAMESPACE" apply -f "$TEST_POD_YAML"
 
@@ -34,12 +47,6 @@ function import_vault() {
     done
 
     sleep 10 && kubectl get pods -l app=ztest
-
-    # Check the content
-    kubectl -n "$NAMESPACE" exec "$TEST_POD" -- ls -l /tmp/vault/ /tmp/vault/file
-
-    # Delete the PVC content
-    kubectl -n "$NAMESPACE" exec "$TEST_POD" -- rm -rf /tmp/vault/file/*
 
     # Copy the vault backup into test pod
     kubectl -n "$NAMESPACE" cp -v=2 "$VAULT_BU"/vault-backup.tar.gz "$TEST_POD":/tmp/vault-backup.tar.gz
