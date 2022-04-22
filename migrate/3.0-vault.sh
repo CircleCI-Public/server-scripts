@@ -12,9 +12,6 @@ function import_vault() {
     VAULT_PVC_YAML="$DIR/vault-pvc.yml"
     VAULT_BU="${BACKUP_DIR}/circleci-vault"
 
-    ## Seal
-    kubectl -n "$NAMESPACE" exec "$VAULT_POD" -c vault -- vault operator seal
-
     # Scaling down Vault
     kubectl -n "$NAMESPACE" scale --replicas=0 sts/vault
 
