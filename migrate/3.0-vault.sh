@@ -5,6 +5,7 @@ set -e
 function import_vault() {
     echo "...importing Vault..."
 
+    VAULT_STS="vault"
     VAULT_POD="vault-0"
     VAULT_PVC="data-vault-0"
     TEST_POD="ztest"
@@ -13,10 +14,10 @@ function import_vault() {
     VAULT_BU="${BACKUP_DIR}/circleci-vault"
 
     # Scaling down Vault
-    kubectl -n "$NAMESPACE" scale --replicas=0 sts/vault
+    kubectl -n "$NAMESPACE" scale --replicas=0 sts/$VAULT_STS
 
     # Waiting for Vault termination
-    while [[ $(kubectl -n "$NAMESPACE" get pods -l app=vault 2>/dev/null | grep -c vault) -gt 0 ]]
+    while [[ $(kubectl -n "$NAMESPACE" get pods -l app="$VAULT_STS" 2>/dev/null | grep -c "$VAULT_STS") -gt 0 ]]
     do
         echo "Vault is terminating"
         sleep 15
@@ -37,13 +38,13 @@ function import_vault() {
     kubectl -n "$NAMESPACE" apply -f "$TEST_POD_YAML"
 
     # Waiting for Pod ztest
-    while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app=ztest 2>/dev/null | grep -c "1/1") -gt 0 ]]
+    while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app="$TEST_POD" 2>/dev/null | grep -c "1/1") -gt 0 ]]
     do
         echo "Waiting for ztest to scale up"
         sleep 15
     done
 
-    kubectl -n "$NAMESPACE" get pods -l app=ztest
+    kubectl -n "$NAMESPACE" get pods -l app="$TEST_POD"
 
     # Copy the vault backup into test pod
     kubectl -n "$NAMESPACE" cp -v=2 "$VAULT_BU"/vault-backup.tar.gz "$TEST_POD":/tmp/vault-backup.tar.gz
@@ -58,16 +59,16 @@ function import_vault() {
     kubectl -n "$NAMESPACE" delete pod/"$TEST_POD"  
 
     # Bring up the Vault sts and wait to be up
-    kubectl -n "$NAMESPACE" scale --replicas=1 sts/vault
+    kubectl -n "$NAMESPACE" scale --replicas=1 sts/$VAULT_STS
 
     # Waiting for Pod vault
-    while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app=vault 2>/dev/null | grep -c "2/2") -gt 0 ]]
+    while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app="$VAULT_STS" 2>/dev/null | grep -c "2/2") -gt 0 ]]
     do
         echo "Waiting for Vault to scale up"
         sleep 15
     done 
 
-    kubectl -n "$NAMESPACE" get pods -l app=vault
+    kubectl -n "$NAMESPACE" get pods -l app="$VAULT_STS"
 
     ### Unseal
     kubectl -n "$NAMESPACE" exec "$VAULT_POD" -c vault -- sh -c "rm -rf /vault/file/sys/expire/id/auth/token/create/* && for k in \$(head -n 3 /vault/file/vault-init-out | sed \"s/^.*: //g\"); do vault operator unseal \"\$k\"; done; vault login \$(grep \"Root\" /vault/file/vault-init-out | sed \"s/^.*: //g\"); vault token create -period=\"768h\" > /vault/file/client-token; grep \"token \" /vault/file/client-token | sed \"s/^token\W*//g\" > /vault/__restricted/client-token"
