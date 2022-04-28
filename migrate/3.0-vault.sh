@@ -8,8 +8,8 @@ function import_vault() {
     VAULT_STS="vault"
     VAULT_POD="vault-0"
     VAULT_PVC="data-vault-0"
-    TEST_POD="ztest"
-    TEST_POD_YAML="$DIR/ztest-pod.yml"
+    TEMP_VAULT_POD="temp-vault"
+    TEMP_VAULT_POD_YAML="$DIR/temp-vault-pod.yml"
     VAULT_PVC_YAML="$DIR/vault-pvc.yml"
     VAULT_BU="${BACKUP_DIR}/circleci-vault"
 
@@ -23,40 +23,33 @@ function import_vault() {
         sleep 15
     done
 
-    # Fetching the PVC info
-    VOL_SIZE=$(kubectl -n "$NAMESPACE" get pvc/$VAULT_PVC -o=jsonpath="{.status.capacity.storage}")
-    echo "Volume size of $VAULT_PVC is - $VOL_SIZE"
-
     # Deleting the PVC
     kubectl -n "$NAMESPACE" delete pvc/$VAULT_PVC
 
     # Recreating the PVC
-    sed  "s/VOLUME_SIZE/$VOL_SIZE/" < "$VAULT_PVC_YAML" | kubectl -n "$NAMESPACE" apply -f -
-    kubectl -n "$NAMESPACE" get pvc/$VAULT_PVC
+    kubectl -n "$NAMESPACE" apply -f "$VAULT_PVC_YAML"
 
     # Creating a test pod
-    kubectl -n "$NAMESPACE" apply -f "$TEST_POD_YAML"
+    kubectl -n "$NAMESPACE" apply -f "$TEMP_VAULT_POD_YAML"
 
-    # Waiting for Pod ztest
-    while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app="$TEST_POD" 2>/dev/null | grep -c "1/1") -gt 0 ]]
+    # Waiting for Pod temp-vault
+    while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app="$TEMP_VAULT_POD" 2>/dev/null | grep -c "1/1") -gt 0 ]]
     do
-        echo "Waiting for ztest to scale up"
+        echo "Waiting for $TEMP_VAULT_POD to scale up"
         sleep 15
     done
 
-    kubectl -n "$NAMESPACE" get pods -l app="$TEST_POD"
-
     # Copy the vault backup into test pod
-    kubectl -n "$NAMESPACE" cp -v=2 "$VAULT_BU"/vault-backup.tar.gz "$TEST_POD":/tmp/vault-backup.tar.gz
+    kubectl -n "$NAMESPACE" cp -v=2 "$VAULT_BU"/vault-backup.tar.gz "$TEMP_VAULT_POD":/tmp/vault-backup.tar.gz
 
     # Extract the content
-    kubectl -n "$NAMESPACE" exec "$TEST_POD" -- tar -xvzf /tmp/vault-backup.tar.gz -C /tmp/vault/
+    kubectl -n "$NAMESPACE" exec "$TEMP_VAULT_POD" -- tar -xvzf /tmp/vault-backup.tar.gz -C /tmp/vault/
 
     # Check if content is extracted
-    kubectl -n "$NAMESPACE" exec "$TEST_POD" -- ls -l /tmp/vault/ /tmp/vault/file
+    kubectl -n "$NAMESPACE" exec "$TEMP_VAULT_POD" -- ls -l /tmp/vault/ /tmp/vault/file
 
     # If Yes, delete the pod now
-    kubectl -n "$NAMESPACE" delete pod/"$TEST_POD"  
+    kubectl -n "$NAMESPACE" delete pod/"$TEMP_VAULT_POD"
 
     # Bring up the Vault sts and wait to be up
     kubectl -n "$NAMESPACE" scale --replicas=1 sts/$VAULT_STS
@@ -64,7 +57,7 @@ function import_vault() {
     # Waiting for Pod vault
     while [[ ! $(kubectl -n "$NAMESPACE" get pods -l app="$VAULT_STS" 2>/dev/null | grep -c "2/2") -gt 0 ]]
     do
-        echo "Waiting for Vault to scale up"
+        echo "Waiting for $VAULT_STS to scale up"
         sleep 15
     done 
 

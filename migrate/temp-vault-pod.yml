@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: ztest
+  name: temp-vault
   labels:
-    app: ztest  
+    app: temp-vault  
 spec:
   containers:
-    - name: ztest
+    - name: temp-vault
       image: busybox
       command: [ "/bin/sh", "-c", "sleep 7200" ]
       volumeMounts:
