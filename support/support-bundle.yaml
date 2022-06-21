@@ -1,0 +1,107 @@
+apiVersion: troubleshoot.sh/v1beta2
+kind: SupportBundle
+metadata:
+  name: circleci-server
+spec:
+  collectors:
+  - clusterInfo: {}
+  - clusterResources: {}
+  - logs:
+      selector:
+      - layer=application
+      name: application
+  - logs:
+      selector:
+      - layer=data
+      name: data
+  - logs:
+      selector:
+      - layer=execution
+      name: nomad
+  redactors:
+  - name: Redact Object storage credentials
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: __ACCESS_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __SECRET_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact ring session encryption key
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: CIRCLE_SECRETS__SESSION_COOKIE_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact Github OAuth credentials
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: CLIENT_ID
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: CLIENT_SECRET
+        redactor: '("value": ")(?P<mask>.*)(")' 
+
+  - name: Redact soketi secret
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: PUSHER__SECRET
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: DEFAULT_APP_SECRET
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: keyczar encryption and signing keys
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: KEYSET__
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  # Removes passwords from URI's of the form <scheme>://<user>:<password>@<host>:<port>
+  - name: Redact passwords from URIs
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - redactor: '(?P<value>"value": ")(?P<scheme>[^:]*)(://)(?P<user>[^:]*)(:)(?P<mask>[^@]*)@(?P<hostname>[^(:|/)]*)(?P<rest>.*)(")'
+
+  # JDBC URI's put the password in the query string of the URI instead of the
+  # user information section of the URI. This removes password=<password>
+  # structured parts
+  - name: Redact passwords from JDBC URIs
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - redactor: '(?P<key>password=)(?P<mask>.*)'
+
+  # An annotation on deployments holds the previously applied configuration. It contains much
+  # of the environment variable section from the deployment but JSON escaped which can make the
+  # default redactions fail. We redact the entire annotation here to avoid leakage.
+  - name: last applied configuration annotation
+    removals:
+      regex:
+      - redactor: '("kubectl\.kubernetes\.io/last-applied-configuration": ")(?P<mask>.+)(")'
+  analyzers: []
