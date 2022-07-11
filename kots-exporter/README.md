@@ -22,7 +22,6 @@ $ kubectl create secret docker-registry regcred \
   --docker-email=<notification-email-id>
 ```
 
-docker token can be generated [here](https://hub.docker.com/settings/security) for your account to use as `image-registry-password`.
 
 ## Reason
 To enable user to download the existing `helm` values file from kots installation which can be utilized with `helm install/upgrade` commands
