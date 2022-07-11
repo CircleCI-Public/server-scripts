@@ -325,14 +325,12 @@ output_message(){
     echo ""
     echo "Helm Diff command (only changes) -"
     echo "-------------------------------------------------------------------------"
-    echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 <chart-directory>"
+    echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 <chart>"
 
     echo ""
     echo "Helm upgrade command - "
     echo "-------------------------------------------------------------------------"
-    echo "cd <chart-directory>"
-    echo "helm dep update"
-    echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml <chart-directory> --force"
+    echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml <chart> --force"
 
     echo ""
     domainName="$(awk '/domainName/ {print $2;exit;}' "$path"/output/helm-values.yaml)"

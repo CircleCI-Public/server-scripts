@@ -1,4 +1,4 @@
-# server-kots-exporter [Beta]
+# server-kots-exportergs
 
 This is a script to download KOTS config and convert it to a `helm` values file
 
@@ -22,9 +22,6 @@ $ kubectl create secret docker-registry regcred \
   --docker-email=<notification-email-id>
 ```
 
-
-## Reason
-To enable user to download the existing `helm` values file from kots installation which can be utilized with `helm install/upgrade` commands
 
 ## Usage
 
