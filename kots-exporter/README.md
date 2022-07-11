@@ -16,7 +16,7 @@ to create a Docker registry secret in your Kubernetes cluster:
 
 ```
 $ kubectl create secret docker-registry regcred \
-  --docker-server=https://index.docker.io/v1/ \
+  --docker-server=https://cciserver.azurecr.io/ \
   --docker-username=<image-registry-username> \
   --docker-password=<image-registry-password> \
   --docker-email=<notification-email-id>
