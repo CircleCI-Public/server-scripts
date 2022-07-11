@@ -10,7 +10,7 @@ This is a script to download KOTS config and convert it to a `helm` values file
 - [velero](https://velero.io/docs/v1.6/contributions/minio/#back-up) (Required for backup and restore)
 
 ### Docker secret `regcred` must be exists
-The Helm chart references many private, proprietary container images. The DockerHub
+The Helm chart references private container images. The DockerHub
 API token you've been supplied will allow you to pull these images. To do so we need
 to create a Docker registry secret in your Kubernetes cluster:
 
