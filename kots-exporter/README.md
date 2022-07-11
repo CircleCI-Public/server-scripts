@@ -7,7 +7,7 @@ This is a simple script to download KOTS config and convert it in `helm` value f
 - [yq](https://github.com/mikefarah/yq#install)
 - [helm](https://github.com/helm/helm#install) (v3.x)
 - [helm-diff](https://github.com/databus23/helm-diff#install) (Good to have for comparing helm releases)
-- [velero](https://velero.io/docs/v1.6/contributions/minio/#back-up) (Good to have for k8s backup/restore)
+- [velero](https://velero.io/docs/v1.6/contributions/minio/#back-up) (Required for backup and restore)
 
 ### Docker secret `regcred` must be exists
 The Helm chart references many private, proprietary container images. The DockerHub
