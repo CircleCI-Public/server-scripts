@@ -1,6 +1,6 @@
 # server-kots-exporter [Beta]
 
-This is a simple script to download KOTS config and convert it in `helm` value file
+This is a script to download KOTS config and convert it to a `helm` values file
 
 ## Prerequisite
 - [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
