@@ -1,0 +1,9 @@
+# Folder
+output/
+circleci_export/
+
+# Files
+*.log
+*.tgz
+*.zip
+*.gz
