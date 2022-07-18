@@ -12,14 +12,12 @@ function check_prereq(){
 }
 
 function gen_password(){
-
-    
     env LC_ALL=C tr -dc 'A-Za-z0-9_' < /dev/urandom | head -c "$1"
 }
 
 function sign_enc_keys(){
-    sign=$(docker run circleci/server-keysets:latest generate signing -a stdout)
-    enc=$(docker run circleci/server-keysets:latest generate encryption -a stdout)
+    sign=$(sudo docker run circleci/server-keysets:latest generate signing -a stdout)
+    enc=$(sudo docker run circleci/server-keysets:latest generate encryption -a stdout)
     echo """
 keyset:
   encryption: '$enc'
