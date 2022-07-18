@@ -12,6 +12,8 @@ function check_prereq(){
 }
 
 function gen_password(){
+
+    
     env LC_ALL=C tr -dc 'A-Za-z0-9_' < /dev/urandom | head -c "$1"
 }
 
