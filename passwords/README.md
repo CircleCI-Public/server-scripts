@@ -1,4 +1,4 @@
-# genPass
+# genPass.sh
 
 This utility script will generate the passwords for CircleCI Server installation. 
 
@@ -8,7 +8,7 @@ This utility script will generate the passwords for CircleCI Server installation
 ## Usage
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/CircleCI-Public/server-scripts/main/passwords/genPass.sh)
+curl -Ls https://raw.githubusercontent.com/CircleCI-Public/server-scripts/main/passwords/genPass.sh | bash
 ```
 
 ## Supported Platform
