@@ -16,8 +16,8 @@ function gen_password(){
 }
 
 function sign_enc_keys(){
-    sign=$(sudo docker run circleci/server-keysets:latest generate signing -a stdout)
-    enc=$(sudo docker run circleci/server-keysets:latest generate encryption -a stdout)
+    sign=$(docker run circleci/server-keysets:latest generate signing -a stdout)
+    enc=$(docker run circleci/server-keysets:latest generate encryption -a stdout)
     echo """
 keyset:
   encryption: '$enc'
