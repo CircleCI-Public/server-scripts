@@ -36,7 +36,7 @@ function error_exit(){
 ############ MAIN ############
 
 # Checking Pre-Req
-check_prereq
+#check_prereq
 
 # Generating Passwords
 sign_enc_keys
