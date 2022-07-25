@@ -309,27 +309,37 @@ rm_kots_annot_label_resources(){
 output_message(){
     echo ""
     echo "############ HELM COMMANDS ################"
-
-    echo "Output file is here - $path/output/helm-values.yaml"
-
+    echo "Before upgrading to 4.0, follow below steps:"
     echo ""
-    echo "To upgrade Postgres Chart (v11.6.0), follow below steps -"
+    echo "Your helm values file with your installation config is here:"
+    echo "- $path/output/helm-values.yaml"
+    echo ""
     echo "-------------------------------------------------------------------------"
+    
+    echo "## Progres Chart Upgrade Preparation"
+    echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Posgres chart"
+    echo "Before upgrading, we need to prepare your postgres instance."
+    echo "This is only needed if your Postgres Instance is not externalized."
+    echo ""
+    echo "# Collect your postgres user's password and the PVC attached to your postgres instance"
     echo "export POSTGRESQL_PASSWORD=\$(kubectl get secret --namespace $namespace postgresql -o jsonpath=\"{.data.postgres-password}\" | base64 --decode)"
     echo "export POSTGRESQL_PVC=\$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath=\"{.items[0].metadata.name}\")"
-
+    echo "# remove the postgres statefulset without terminating your postgres instance"
     echo "kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan"
+    echo "# remove the existing secret containing your postgres password. This will get recreated during upgrade."
     echo "kubectl delete secret postgresql --namespace $namespace"
-    echo "-------------------------------------------------------------------------"
-
     echo ""
-    echo "Helm Diff command (only changes) -"
     echo "-------------------------------------------------------------------------"
+    
+    echo "## Helm Diff (optional)"
+    echo "The Helm Diff tool is used to verify that the changes between your current install and the upgrade are expected."
+    echo ""
+    echo "# diff command"
     echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 <chart>"
-
     echo ""
-    echo "Helm upgrade command - "
     echo "-------------------------------------------------------------------------"
+    
+    echo "## Helm Upgrade CircleCI Server"
     echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml <chart> --force"
 
     echo ""
