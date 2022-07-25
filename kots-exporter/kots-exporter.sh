@@ -120,6 +120,17 @@ set_default_value(){
     then
         func="all"
     fi
+
+    # check if this is a dev migration
+    if [[ $dev == true ]]
+    then
+        export REGISTRY="devcharts"
+        echo "Using dev azure registry"
+    else
+        export REGISTRY="cciserver"
+    fi
+
+    export CHART="oci://devcharts.azurecr.io/circleci-server"
 }
 
 create_folders(){
@@ -266,15 +277,6 @@ execute_flyway_migration(){
     # shellcheck disable=SC2046
     export $(kubectl -n "$namespace" exec "$FRONTEND_POD" -c frontend -- printenv | grep -Ew 'POSTGRES_USERNAME|POSTGRES_PORT|POSTGRES_PASSWORD|POSTGRES_HOST' | xargs )
 
-    # check if this is a dev migration
-    if [[ $dev == true ]]
-    then
-      export REGISTRY="devcharts"
-      echo "Using dev azure registry"
-    else
-      export REGISTRY="cciserver"
-    fi
-
     echo "Creating job/circle-migrator -"
     ( envsubst < "$path"/templates/circle-migrator.yaml | kubectl -n "$namespace" apply -f - ) \
     || error_exit "Job circle-migrator creation error"
@@ -344,12 +346,13 @@ output_message(){
     echo "The Helm Diff tool is used to verify that the changes between your current install and the upgrade are expected."
     echo ""
     echo "# diff command"
-    echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 <chart>"
+    echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 $chart"
+    helm diff upgrade circleci-server -n server -f /Users/akilaikman/Projects/server-scripts/kots-exporter/output/helm-values.yaml --show-secrets --context 5 oci://devcharts.azurecr.io/circleci-server --version 4.0.0-RC1-8-gaefe20e
     echo ""
     echo "-------------------------------------------------------------------------"
     
     echo "## Helm Upgrade CircleCI Server"
-    echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml <chart> --force"
+    echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml $chart --force"
 
     echo ""
     domainName="$(awk '/domainName/ {print $2;exit;}' "$path"/output/helm-values.yaml)"
