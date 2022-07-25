@@ -266,6 +266,15 @@ execute_flyway_migration(){
     # shellcheck disable=SC2046
     export $(kubectl -n "$namespace" exec "$FRONTEND_POD" -c frontend -- printenv | grep -Ew 'POSTGRES_USERNAME|POSTGRES_PORT|POSTGRES_PASSWORD|POSTGRES_HOST' | xargs )
 
+    # check if this is a dev migration
+    if [[ $dev == true ]]
+    then
+      export REGISTRY="devcharts"
+      echo "Using dev azure registry"
+    else
+      export REGISTRY="cciserver"
+    fi
+
     echo "Creating job/circle-migrator -"
     ( envsubst < "$path"/templates/circle-migrator.yaml | kubectl -n "$namespace" apply -f - ) \
     || error_exit "Job circle-migrator creation error"
@@ -388,6 +397,8 @@ while [[ "$#" -gt 0 ]]; do
         -f|--func)
             func="$2";
             shift ;;
+        -d|--dev)
+            dev=true;;
         -h|--help)
             help_init_options;
             exit 0 ;;
