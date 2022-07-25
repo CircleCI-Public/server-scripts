@@ -346,13 +346,12 @@ output_message(){
     echo "The Helm Diff tool is used to verify that the changes between your current install and the upgrade are expected."
     echo ""
     echo "# diff command"
-    echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 $chart"
-    helm diff upgrade circleci-server -n server -f /Users/akilaikman/Projects/server-scripts/kots-exporter/output/helm-values.yaml --show-secrets --context 5 oci://devcharts.azurecr.io/circleci-server --version 4.0.0-RC1-8-gaefe20e
+    echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 $CHART --version 4.0.0"
     echo ""
     echo "-------------------------------------------------------------------------"
     
     echo "## Helm Upgrade CircleCI Server"
-    echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml $chart --force"
+    echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml $CHART --version 4.0.0 --force"
 
     echo ""
     domainName="$(awk '/domainName/ {print $2;exit;}' "$path"/output/helm-values.yaml)"
