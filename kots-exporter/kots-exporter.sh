@@ -333,7 +333,7 @@ output_message(){
     echo "This is only needed if your Postgres Instance is not externalized."
     echo ""
     echo "# Collect your postgres user's password and the PVC attached to your postgres instance"
-    echo "export POSTGRESQL_PASSWORD=\$(kubectl get secret --namespace $namespace postgresql -o jsonpath=\"{.data.postgres-password}\" | base64 --decode)"
+    echo "export POSTGRESQL_PASSWORD=\$(kubectl get secret --namespace $namespace postgresql -o jsonpath=\"{.data.postgresql-password}\" | base64 --decode)"
     echo "export POSTGRESQL_PVC=\$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath=\"{.items[0].metadata.name}\")"
     echo "# remove the postgres statefulset without terminating your postgres instance"
     echo "kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan"
