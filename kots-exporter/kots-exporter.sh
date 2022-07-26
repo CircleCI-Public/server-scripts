@@ -130,7 +130,7 @@ set_default_value(){
         export REGISTRY="cciserver"
     fi
 
-    export CHART="oci://devcharts.azurecr.io/circleci-server"
+    export CHART="oci://$REGISTRY.azurecr.io/circleci-server"
 }
 
 create_folders(){
