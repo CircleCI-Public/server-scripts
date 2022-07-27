@@ -15,7 +15,7 @@ spec:
       - name: regcred
       containers:
       - name: circle-migrator
-        image: circleci/circle-migrator:0.1.532114-6a5071e0ed
+        image: $REGISTRY.azurecr.io/circle-migrator:0.1.532114-6a5071e0ed
         env:
         - name: FLYWAY_BASELINE_ON_MIGRATE
           value: "true"
