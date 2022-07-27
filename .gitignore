@@ -4,6 +4,7 @@ circleci_export/
 
 # Files
 *.log
+*.logs
 *.tgz
 *.zip
 *.gz
