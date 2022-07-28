@@ -8,3 +8,4 @@ circleci_export/
 *.tgz
 *.zip
 *.gz
+**/temp

@@ -182,6 +182,15 @@ modify_helm_values(){
     fi
 
     echo ""
+    echo "Adding mongodb-password"
+    mongo_val=$(yq '.mongodb.auth.password' "$path"/output/helm-values.yaml)
+    mongo_pass="$(gen_password 16)"
+    if [[ "$mongo_val" == "null"  ]]
+    then
+        yq -i ".mongodb.auth.password=\"$mongo_pass\"" "$path"/output/helm-values.yaml || error_exit "mongodb-password addition has failed."
+    fi
+
+    echo ""
     echo "Altering Postgres block for new chart"
     if [[ $(yq '.postgresql.internal' "$path"/output/helm-values.yaml) == true ]]
     then
@@ -238,6 +247,16 @@ modify_helm_values(){
            del(.postgresql.postgresqlPassword) |
            del(.nomad.server.rpc.advertise) |
            del(.license)' "$path"/output/helm-values.yaml || echo "Delete manually if exists"
+
+    echo ""
+    echo "Cleanup nulls"
+    grep -ve "accessKey: null" \
+    -ve "secretKey: null" \
+    -ve "extra_annotations: null" \
+    -ve "annotations: null" \
+    -ve "password: null" \
+    -ve "username: null" "$path"/output/helm-values.yaml > "$path"/output/temp  \
+    && mv "$path"/output/temp  "$path"/output/helm-values.yaml
 }
 
 annotation_k8s_resource(){
@@ -357,6 +376,10 @@ output_message(){
     domainName="$(awk '/domainName/ {print $2;exit;}' "$path"/output/helm-values.yaml)"
     echo "NOTE: After server 3.x to 4.x migration, You must rerun the Nomad terraform with modified value of 'server_endpoint' variable"
     echo "It should be - $domainName:4647"
+}
+
+function gen_password(){
+    env LC_ALL=C tr -dc 'A-Za-z0-9_' < /dev/urandom | head -c "$1"
 }
 
 error_exit(){
