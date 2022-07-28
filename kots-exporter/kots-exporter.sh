@@ -183,8 +183,8 @@ modify_helm_values(){
 
     echo ""
     echo "Adding registry"
-    CHART_REGISTRY="$REGISTRY.azurecr.io" yq -i '.global.container.registry = strenv(CHART_REGISTRY)' "$path"/output/helm-values.yaml || error_exit "kong annotation modification is failed."
-    yq -i '.global.container.org = ""' "$path"/output/helm-values.yaml || error_exit "kong annotation modification is failed."
+    CHART_REGISTRY="$REGISTRY.azurecr.io" yq -i '.global.container.registry = strenv(CHART_REGISTRY)' "$path"/output/helm-values.yaml || error_exit "Registry addition has failed."
+    yq -i '.global.container.org = ""' "$path"/output/helm-values.yaml || error_exit "Org addition has failed."
 
     echo ""
     echo "Altering Postgres block for new chart"
