@@ -187,7 +187,7 @@ modify_helm_values(){
     mongo_pass="$(gen_password 16)"
     if [[ "$mongo_val" == "null"  ]]
     then
-        yq -i ".mongodb.auth.password=\"$mongo_pass\"" "$path"/output/helm-values.yaml || error_exit "mongodb-password addition is failed."
+        yq -i ".mongodb.auth.password=\"$mongo_pass\"" "$path"/output/helm-values.yaml || error_exit "mongodb-password addition has failed."
     fi
 
     echo ""
