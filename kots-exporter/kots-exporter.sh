@@ -139,7 +139,7 @@ create_folders(){
 
     # Creating
     rm -rf  "$path/output" 2> /dev/null
-    mkdir -p "$path/output" && echo "output folder is created."
+    mkdir -p "$path/output" && echo "output folder has created."
 }
 
 download_helm_values(){
@@ -148,7 +148,7 @@ download_helm_values(){
     echo ""
     echo "Downloading helm value file from release: $slug and namespace: $namespace"
     (helm get values "$slug" -n "$namespace" --revision 1 -o yaml > "$path"/output/helm-values.yaml \
-    && echo "++++ Helm value file download is completed") \
+    && echo "++++ Helm value file download has completed") \
     || error_exit "Helm value file download"
 
 }
@@ -160,25 +160,25 @@ modify_helm_values(){
     echo ""
     echo "Adding domainName"
     domainName="$(awk '/domainName/ {print $2;exit;}' "$path"/output/helm-values.yaml)"
-    yq -i ".global.domainName = \"$domainName\"" "$path"/output/helm-values.yaml || error_exit "domainName modification is failed."
+    yq -i ".global.domainName = \"$domainName\"" "$path"/output/helm-values.yaml || error_exit "domainName modification has failed."
 
     echo ""
     echo "Adding imagePullSecret"
-    yq -i '.global.imagePullSecrets[0].name = "regcred"' "$path"/output/helm-values.yaml || error_exit "imagePullSecrets modification is failed."
+    yq -i '.global.imagePullSecrets[0].name = "regcred"' "$path"/output/helm-values.yaml || error_exit "imagePullSecrets modification has failed."
 
     echo ""
     echo "Adding license"
-    LICENSE=$(echo "$license" | tr -d "'") yq -i '.global.license = strenv(LICENSE)' "$path"/output/helm-values.yaml || error_exit "license modification is failed."
+    LICENSE=$(echo "$license" | tr -d "'") yq -i '.global.license = strenv(LICENSE)' "$path"/output/helm-values.yaml || error_exit "license modification has failed."
 
     echo ""
     echo "Copying Kong annotation to Nginx"
-    yq -i '.nginx.annotations'='.kong.annotations' "$path"/output/helm-values.yaml || error_exit "kong annotation modification is failed."
+    yq -i '.nginx.annotations'='.kong.annotations' "$path"/output/helm-values.yaml || error_exit "kong annotation modification has failed."
 
     echo ""
     echo "Configuring AWS ACM"
     if [[ $(yq '.kong.aws_acm.enabled' "$path"/output/helm-values.yaml) == true ]]
     then
-        yq -i '.nginx.aws_acm.enabled'='true' "$path"/output/helm-values.yaml || error_exit "kong aws_acm modification is failed."
+        yq -i '.nginx.aws_acm.enabled'='true' "$path"/output/helm-values.yaml || error_exit "kong aws_acm modification has failed."
     fi
 
     echo ""
@@ -198,44 +198,44 @@ modify_helm_values(){
             .postgresql.auth.postgresPassword=.postgresql.postgresqlPassword |
             .postgresql.auth.username="" |
             .postgresql.auth.existingSecret=""
-            ' "$path"/output/helm-values.yaml || error_exit "postgresqlPassword modification is failed."
+            ' "$path"/output/helm-values.yaml || error_exit "postgresqlPassword modification has failed."
     else
         yq -i '
             .postgresql.auth.password=.postgresql.postgresqlPassword |
             .postgresql.auth.username=.postgresql.postgresqlUsername |
             .postgresql.auth.existingSecret=""
-            ' "$path"/output/helm-values.yaml || error_exit "postgres username or password modification is failed."
+            ' "$path"/output/helm-values.yaml || error_exit "postgres username or password modification has failed."
     fi
 
     echo ""
     echo "Cleaning Nomad Autoscaler Block"
     if [[ $(yq '.nomad.auto_scaler.enabled' "$path"/output/helm-values.yaml) == false ]]
     then
-        yq -i 'del(.nomad.auto_scaler.gcp)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (gcp) block deletion is failed"
-        yq -i 'del(.nomad.auto_scaler.aws)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (aws) block deletion is failed"
+        yq -i 'del(.nomad.auto_scaler.gcp)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (gcp) block deletion has failed"
+        yq -i 'del(.nomad.auto_scaler.aws)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (aws) block deletion has failed"
     elif [[ $(yq '.nomad.auto_scaler.aws.enabled' "$path"/output/helm-values.yaml) == true ]]
     then
-        yq -i 'del(.nomad.auto_scaler.gcp)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (gcp) block deletion is failed"
+        yq -i 'del(.nomad.auto_scaler.gcp)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (gcp) block deletion has failed"
     else
-        yq -i 'del(.nomad.auto_scaler.aws)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (aws) block deletion is failed"
+        yq -i 'del(.nomad.auto_scaler.aws)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (aws) block deletion has failed"
     fi
 
     echo ""
     echo "Cleaning VM Block"
     if [[ $(yq '.vm_service.providers.ec2.enabled' "$path"/output/helm-values.yaml) == true ]]
     then
-        yq -i 'del(.vm_service.providers.gcp)' "$path"/output/helm-values.yaml || error_exit "VM provider (gcp) block deletion is failed"
+        yq -i 'del(.vm_service.providers.gcp)' "$path"/output/helm-values.yaml || error_exit "VM provider (gcp) block deletion has failed"
     else
-        yq -i 'del(.vm_service.providers.aws)' "$path"/output/helm-values.yaml || error_exit "VM provider (aws) block deletion is failed"
+        yq -i 'del(.vm_service.providers.aws)' "$path"/output/helm-values.yaml || error_exit "VM provider (aws) block deletion has failed"
     fi
 
     echo ""
     echo "Cleaning S3 Block"
     if [[ $(yq '.object_storage.s3.enabled' "$path"/output/helm-values.yaml) == true ]]
     then
-        yq -i 'del(.object_storage.gcs)' "$path"/output/helm-values.yaml || error_exit "Object Storage (gcp) block deletion is failed"
+        yq -i 'del(.object_storage.gcs)' "$path"/output/helm-values.yaml || error_exit "Object Storage (gcp) block deletion has failed"
     else
-        yq -i 'del(.object_storage.s3)' "$path"/output/helm-values.yaml || error_exit "Object Storage (aws) block deletion is failed"
+        yq -i 'del(.object_storage.s3)' "$path"/output/helm-values.yaml || error_exit "Object Storage (aws) block deletion has failed"
     fi
 
     echo ""
@@ -283,7 +283,7 @@ execute_flyway_migration(){
     echo "Checking if job/circle-migrator already ran -"
     if kubectl get job/circle-migrator -n $namespace -o name > /dev/null 2>&1
     then
-        echo "Job circle-migrator is already been run, If you want to run again, delete the job circle-migrator via below command"
+        echo "Job circle-migrator has already been run, If you want to run again, delete the job circle-migrator via below command"
         echo "kubectl delete job/circle-migrator -n $namespace"
         echo "To Rerun: ./kots-exporter.sh -a $slug -n $namespace -f flyway"
         error_exit
