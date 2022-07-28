@@ -182,6 +182,11 @@ modify_helm_values(){
     fi
 
     echo ""
+    echo "Adding registry"
+    CHART_REGISTRY="$REGISTRY.azurecr.io" yq -i '.global.container.registry = strenv(CHART_REGISTRY)' "$path"/output/helm-values.yaml || error_exit "kong annotation modification is failed."
+    yq -i '.global.container.org = ""' "$path"/output/helm-values.yaml || error_exit "kong annotation modification is failed."
+
+    echo ""
     echo "Altering Postgres block for new chart"
     if [[ $(yq '.postgresql.internal' "$path"/output/helm-values.yaml) == true ]]
     then
