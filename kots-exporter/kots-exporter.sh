@@ -139,7 +139,7 @@ create_folders(){
 
     # Creating
     rm -rf  "$path/output" 2> /dev/null
-    mkdir -p "$path/output" && echo "output folder has created."
+    mkdir -p "$path/output" && echo "output folder has been created."
 }
 
 download_helm_values(){
