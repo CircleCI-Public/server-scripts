@@ -2,9 +2,14 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: circle-migrator
+  annotations:
+    meta.helm.sh/release-name: $RELEASE_NAME
+    meta.helm.sh/release-namespace: $K8S_POD_NAMESPACE
   labels:
     app: circle-migrator
     layer: application
+    app.kubernetes.io/managed-by: Helm
+
 spec:
   template:
     metadata:

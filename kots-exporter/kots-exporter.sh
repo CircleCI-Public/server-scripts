@@ -299,7 +299,8 @@ execute_flyway_migration(){
 
     echo "Fetching values from $FRONTEND_POD pod"
     # shellcheck disable=SC2046
-    export $(kubectl -n "$namespace" exec "$FRONTEND_POD" -c frontend -- printenv | grep -Ew 'POSTGRES_USERNAME|POSTGRES_PORT|POSTGRES_PASSWORD|POSTGRES_HOST' | xargs )
+    export $(kubectl -n "$namespace" exec "$FRONTEND_POD" -c frontend -- printenv | grep -Ew 'POSTGRES_USERNAME|POSTGRES_PORT|POSTGRES_PASSWORD|POSTGRES_HOST|K8S_POD_NAMESPACE' | xargs )
+    export RELEASE_NAME=$slug
 
     echo "Creating job/circle-migrator -"
     ( envsubst < "$path"/templates/circle-migrator.yaml | kubectl -n "$namespace" apply -f - ) \
