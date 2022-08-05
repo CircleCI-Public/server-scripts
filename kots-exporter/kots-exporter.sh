@@ -2,7 +2,7 @@
 set -e
 
 # global list to track resource types to annotate
-resourceList=("sa" "cm" "jobs" "ds" "secret" "role" "RoleBinding" "svc" "cj" "deploy" "sts" "netpol" "pvc", "pdb")
+resourceList=("sa" "cm" "jobs" "ds" "secret" "role" "RoleBinding" "svc" "cj" "deploy" "sts" "netpol" "pvc" "pdb")
 logFile="kots-exporter-script-$(date +%Y-%h-%d-%H%M%S).log"
 annotateLogFile="helm-annotation-$(date +%Y-%h-%d-%H%M%S).log"
 kotsCleanupLogFile="kots-cleanup-$(date +%Y-%h-%d-%H%M%S).log"
