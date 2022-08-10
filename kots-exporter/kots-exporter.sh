@@ -306,9 +306,13 @@ execute_flyway_migration(){
     || error_exit "Job circle-migrator creation error"
 
     echo "Waiting job/circle-migrator to complete -"
-    (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s \
-    && echo "++++ DB Migration job is successful." ) \
-    || error_exit "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+    if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=60s); then
+        echo "++++ DB Migration job is successful."
+        echo "Removing job/circle-migrator -"
+        kubectl delete job/circle-migrator --namespace "$namespace"
+    else
+        error_exit "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+    fi
 }
 
 rm_kots_annot_label_resources(){
