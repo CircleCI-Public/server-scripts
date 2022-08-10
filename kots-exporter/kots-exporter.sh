@@ -306,7 +306,7 @@ execute_flyway_migration(){
     || error_exit "Job circle-migrator creation error"
 
     echo "Waiting job/circle-migrator to complete -"
-    if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=60s); then
+    if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s); then
         echo "++++ DB Migration job is successful."
         echo "Removing job/circle-migrator -"
         kubectl delete job/circle-migrator --namespace "$namespace"
