@@ -36,4 +36,4 @@ spec:
           requests:
             cpu: 2m
             memory: 10Mi
-      restartPolicy: OnFailure
+      restartPolicy: Never

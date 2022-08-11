@@ -72,7 +72,7 @@ check_prereq(){
 
 check_required_args(){
     echo ""
-    echo "############ CHECKING RQUIRED ARGUEMENTS ################"
+    echo "############ CHECKING REQUIRED ARGUMENTS ################"
 
     # check for required arguments
     if [[ -z $slug || -z $namespace ]];
@@ -306,9 +306,13 @@ execute_flyway_migration(){
     || error_exit "Job circle-migrator creation error"
 
     echo "Waiting job/circle-migrator to complete -"
-    (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s \
-    && echo "++++ DB Migration job is successful." ) \
-    || error_exit "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+    if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s); then
+        echo "++++ DB Migration job is successful."
+        echo "Removing job/circle-migrator -"
+        kubectl delete job/circle-migrator --namespace "$namespace"
+    else
+        error_exit "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+    fi
 }
 
 rm_kots_annot_label_resources(){
@@ -338,7 +342,7 @@ rm_kots_annot_label_resources(){
 
     echo "Deleting job inject-bottoken-xxxx"
     kubectl -n $namespace delete "$(kubectl -n $namespace get jobs -o name | grep inject)" \
-    || echo "Manully run the command: kubectl -n $namespace delete $(kubectl -n $namespace get jobs -o name | grep inject)"
+    || echo "Manually run the command: kubectl -n $namespace delete $(kubectl -n $namespace get jobs -o name | grep inject)"
 }
 
 output_message(){
@@ -351,8 +355,8 @@ output_message(){
     echo ""
     echo "-------------------------------------------------------------------------"
     
-    echo "## Progres Chart Upgrade Preparation"
-    echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Posgres chart"
+    echo "## Postgres Chart Upgrade Preparation"
+    echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
     echo "Before upgrading, we need to prepare your postgres instance."
     echo "This is only needed if your Postgres Instance is not externalized."
     echo ""
