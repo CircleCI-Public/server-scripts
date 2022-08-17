@@ -311,7 +311,8 @@ execute_flyway_migration(){
         echo "Removing job/circle-migrator -"
         kubectl delete job/circle-migrator --namespace "$namespace"
     else
-        error_exit "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+        echo "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+        export job_migrator_status="unknown"
     fi
 }
 
@@ -354,6 +355,18 @@ output_message(){
     echo "- $path/output/helm-values.yaml"
     echo ""
     echo "-------------------------------------------------------------------------"
+
+    if [[ "${job_migrator_status}" == "unknown" ]]; then 
+    echo "## Delete circle-migrator job if completed"
+    echo "# Wait for job circle-migrator to complete... "
+    echo "kubectl wait job/circle-migrator --namespace $namespace --for condition='complete' --timeout=300s"
+    echo "# Check job status "
+    echo "kubectl get job/circle-migrator --namespace $namespace"
+    echo "# Delete the job once complete"
+    echo "kubectl delete job/circle-migrator --namespace $namespace"
+    echo ""
+    echo "-------------------------------------------------------------------------"
+    fi 
     
     echo "## Postgres Chart Upgrade Preparation"
     echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
