@@ -61,13 +61,29 @@ check_prereq(){
     if ! command -v yq -V &> /dev/null
     then
         error_exit "yq could not be found."
+    fi 
+}
+
+check_postreq(){
+    echo ""
+    echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"    
+    # check if helm release exists
+    if  [[ "$(helm list -o yaml  | yq '.[].name')" != "$slug" ]]
+    then
+        error_exit "Helm release $slug does not exist."
+    fi
+
+    # check if namespace exists
+    if ! kubectl get ns "$namespace" -o name > /dev/null 2>&1
+    then
+        error_exit "Namespace $namespace does not exist in k8s cluster."
     fi
 
     # check if secret/regcred exists
     if ! kubectl get secret/regcred -n "$namespace" -o name > /dev/null 2>&1
     then
         error_exit "Secret regcred does not exist in k8s namespace - $namespace"
-    fi
+    fi    
 }
 
 check_required_args(){
@@ -308,10 +324,14 @@ execute_flyway_migration(){
     echo "Waiting job/circle-migrator to complete -"
     if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s); then
         echo "++++ DB Migration job is successful."
+        echo "Fetching pod logs -"
+        kubectl  -n "$namespace" logs "$(kubectl -n $namespace get pods -l app=circle-migrator -o name)" > "$path"/logs/circle-migrator.log
+        echo "Pod log is available at $path/logs/circle-migrator.log"
         echo "Removing job/circle-migrator -"
         kubectl delete job/circle-migrator --namespace "$namespace"
     else
-        error_exit "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+        echo "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
+        export job_migrator_status="unknown"
     fi
 }
 
@@ -354,6 +374,18 @@ output_message(){
     echo "- $path/output/helm-values.yaml"
     echo ""
     echo "-------------------------------------------------------------------------"
+
+    if [[ "${job_migrator_status}" == "unknown" ]]; then 
+    echo "## Delete circle-migrator job if completed"
+    echo "# Wait for job circle-migrator to complete... "
+    echo "kubectl wait job/circle-migrator --namespace $namespace --for condition='complete' --timeout=300s"
+    echo "# Check job status "
+    echo "kubectl get job/circle-migrator --namespace $namespace"
+    echo "# Delete the job once complete"
+    echo "kubectl delete job/circle-migrator --namespace $namespace"
+    echo ""
+    echo "-------------------------------------------------------------------------"
+    fi 
     
     echo "## Postgres Chart Upgrade Preparation"
     echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
@@ -369,6 +401,11 @@ output_message(){
     echo "kubectl delete secret postgresql --namespace $namespace"
     echo ""
     echo "-------------------------------------------------------------------------"
+    
+    echo "## Helm login to cciserver.azurecr.io"
+    echo "export HELM_EXPERIMENTAL_OCI=1"
+    echo "helm registry login cciserver.azurecr.io --username <image-registry-username> --password <image-registry-password>"
+    echo ""
     
     echo "## Helm Diff (optional)"
     echo "The Helm Diff tool is used to verify that the changes between your current install and the upgrade are expected."
@@ -444,6 +481,7 @@ done
 check_prereq
 check_required_args
 set_default_value
+check_postreq
 if [[ "$func" == "flyway" ]]; then
     execute_flyway_migration
 elif [[ "$func" == "annotate" ]]; then
