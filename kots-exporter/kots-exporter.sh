@@ -61,13 +61,7 @@ check_prereq(){
     if ! command -v yq -V &> /dev/null
     then
         error_exit "yq could not be found."
-    fi
-
-    # check if secret/regcred exists
-    if ! kubectl get secret/regcred -n "$namespace" -o name > /dev/null 2>&1
-    then
-        error_exit "Secret regcred does not exist in k8s namespace - $namespace"
-    fi    
+    fi 
 }
 
 check_postreq(){
@@ -84,6 +78,12 @@ check_postreq(){
     then
         error_exit "Namespace $namespace does not exist in k8s cluster."
     fi
+
+    # check if secret/regcred exists
+    if ! kubectl get secret/regcred -n "$namespace" -o name > /dev/null 2>&1
+    then
+        error_exit "Secret regcred does not exist in k8s namespace - $namespace"
+    fi    
 }
 
 check_required_args(){
@@ -401,6 +401,11 @@ output_message(){
     echo "kubectl delete secret postgresql --namespace $namespace"
     echo ""
     echo "-------------------------------------------------------------------------"
+    
+    echo "## Helm login to cciserver.azurecr.io"
+    echo "export HELM_EXPERIMENTAL_OCI=1"
+    echo "helm registry login cciserver.azurecr.io --username <image-registry-username> --password <image-registry-password>"
+    echo ""
     
     echo "## Helm Diff (optional)"
     echo "The Helm Diff tool is used to verify that the changes between your current install and the upgrade are expected."
