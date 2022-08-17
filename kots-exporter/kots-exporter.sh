@@ -67,6 +67,22 @@ check_prereq(){
     if ! kubectl get secret/regcred -n "$namespace" -o name > /dev/null 2>&1
     then
         error_exit "Secret regcred does not exist in k8s namespace - $namespace"
+    fi    
+}
+
+check_postreq(){
+    echo ""
+    echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"    
+    # check if helm release exists
+    if  [[ "$(helm list -o yaml  | yq '.[].name')" != "$slug" ]]
+    then
+        error_exit "Helm release $slug does not exist."
+    fi
+
+    # check if namespace exists
+    if ! kubectl get ns "$namespace" -o name > /dev/null 2>&1
+    then
+        error_exit "Namespace $namespace does not exist in k8s cluster."
     fi
 }
 
@@ -308,6 +324,9 @@ execute_flyway_migration(){
     echo "Waiting job/circle-migrator to complete -"
     if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s); then
         echo "++++ DB Migration job is successful."
+        echo "Fetching pod logs -"
+        kubectl  -n "$namespace" logs "$(kubectl -n $namespace get pods -l app=circle-migrator -o name)" > "$path"/logs/circle-migrator.log
+        echo "Pod log is available at $path/logs/circle-migrator.log"
         echo "Removing job/circle-migrator -"
         kubectl delete job/circle-migrator --namespace "$namespace"
     else
@@ -457,6 +476,7 @@ done
 check_prereq
 check_required_args
 set_default_value
+check_postreq
 if [[ "$func" == "flyway" ]]; then
     execute_flyway_migration
 elif [[ "$func" == "annotate" ]]; then
