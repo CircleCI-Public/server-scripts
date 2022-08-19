@@ -322,7 +322,7 @@ execute_flyway_migration(){
     || error_exit "Job circle-migrator creation error"
 
     echo "Waiting job/circle-migrator to complete -"
-    if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=300s); then
+    if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=600s); then
         echo "++++ DB Migration job is successful."
         echo "Fetching pod logs -"
         kubectl  -n "$namespace" logs "$(kubectl -n $namespace get pods -l app=circle-migrator -o name)" > "$path"/logs/circle-migrator.log
@@ -331,7 +331,7 @@ execute_flyway_migration(){
         kubectl delete job/circle-migrator --namespace "$namespace"
     else
         echo "Status wait timeout for job/circle-migrator, Check the Log via - kubectl logs pods -l app=circle-migrator"
-        export job_migrator_status="unknown"
+        echo "Job circle-migrator will delete automatically after 24 hours once complete."
     fi
 }
 
@@ -374,18 +374,6 @@ output_message(){
     echo "- $path/output/helm-values.yaml"
     echo ""
     echo "-------------------------------------------------------------------------"
-
-    if [[ "${job_migrator_status}" == "unknown" ]]; then 
-    echo "## Delete circle-migrator job if completed"
-    echo "# Wait for job circle-migrator to complete... "
-    echo "kubectl wait job/circle-migrator --namespace $namespace --for condition='complete' --timeout=300s"
-    echo "# Check job status "
-    echo "kubectl get job/circle-migrator --namespace $namespace"
-    echo "# Delete the job once complete"
-    echo "kubectl delete job/circle-migrator --namespace $namespace"
-    echo ""
-    echo "-------------------------------------------------------------------------"
-    fi 
     
     echo "## Postgres Chart Upgrade Preparation"
     echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
