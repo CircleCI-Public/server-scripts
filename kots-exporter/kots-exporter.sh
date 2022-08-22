@@ -347,8 +347,9 @@ rm_kots_annot_label_resources(){
     echo "Kots removal logs are available - $path/logs/$kotsCleanupLogFile"
 
     echo "Deleting job inject-bottoken-xxxx"
-    kubectl -n $namespace delete "$(kubectl -n $namespace get jobs -o name | grep inject)" \
-    || echo "Manually run the command: kubectl -n $namespace delete $(kubectl -n $namespace get jobs -o name | grep inject)"
+    if [ "$(kubectl -n $namespace get jobs -o name | grep inject)" != "" ]; then
+    kubectl -n $namespace delete "$(kubectl -n $namespace get jobs -o name | grep inject)"
+    fi
 }
 
 create_postgres_migration(){
@@ -360,9 +361,9 @@ create_postgres_migration(){
     echo "Before upgrading, we need to prepare your postgres instance."
     echo "Migration command will be saved in $path/output/postgres-migration.sh"
 
-    echo "export POSTGRESQL_PASSWORD=$(kubectl get secret --namespace $namespace postgresql -o jsonpath='{.data.postgresql-password}' | base64 --decode)" > "$path"/output/postgres-migration.sh
+    echo "export POSTGRESQL_PASSWORD='$(kubectl get secret --namespace $namespace postgresql -o jsonpath='{.data.postgresql-password}' | base64 --decode)'" > "$path"/output/postgres-migration.sh
     # shellcheck disable=SC2129
-    echo "export POSTGRESQL_PVC=$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath='{.items[0].metadata.name}')" >> "$path"/output/postgres-migration.sh
+    echo "export POSTGRESQL_PVC='$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath='{.items[0].metadata.name}')'" >> "$path"/output/postgres-migration.sh
     echo "kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan" >> "$path"/output/postgres-migration.sh
     echo "kubectl delete secret postgresql --namespace $namespace" >> "$path"/output/postgres-migration.sh
     fi
@@ -379,7 +380,7 @@ output_message(){
     echo "-------------------------------------------------------------------------"
 
     echo "## Helm login to cciserver.azurecr.io"
-    echo "helm registry login cciserver.azurecr.io --username <image-registry-username> --password <image-registry-password>"
+    echo "echo <image-registry-password> | helm registry login cciserver.azurecr.io --username <image-registry-username> --password-stdin"
     echo ""
 
     echo "## Helm Diff (optional)"
