@@ -59,12 +59,12 @@ check_prereq(){
     if ! command -v yq -V &> /dev/null
     then
         error_exit "yq could not be found."
-    fi 
+    fi
 }
 
 check_postreq(){
     echo ""
-    echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"    
+    echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"
     # check if helm release exists
     if  [[ "$(helm list -o yaml  | yq '.[].name')" != "$slug" ]]
     then
@@ -81,7 +81,7 @@ check_postreq(){
     if ! kubectl get secret/regcred -n "$namespace" -o name > /dev/null 2>&1
     then
         error_exit "Secret regcred does not exist in k8s namespace - $namespace"
-    fi    
+    fi
 }
 
 check_required_args(){
@@ -205,6 +205,7 @@ modify_helm_values(){
             .postgresql.auth.username="" |
             .postgresql.auth.existingSecret=""
             ' "$path"/output/helm-values.yaml || error_exit "postgresqlPassword modification has failed."
+        export POSTGRES_INTERNAL=true
     else
         yq -i '
             .postgresql.auth.password=.postgresql.postgresqlPassword |
@@ -350,6 +351,23 @@ rm_kots_annot_label_resources(){
     || echo "Manually run the command: kubectl -n $namespace delete $(kubectl -n $namespace get jobs -o name | grep inject)"
 }
 
+create_postgres_migration(){
+    if "$POSTGRES_INTERNAL"; then
+    echo ""
+    echo "############ CREATING POSTGRES MIGRATION SCRIPT ############"
+
+    echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
+    echo "Before upgrading, we need to prepare your postgres instance."
+    echo "Migration command will be saved in $path/output/postgres-migration.sh"
+
+    echo "export POSTGRESQL_PASSWORD=$(kubectl get secret --namespace $namespace postgresql -o jsonpath='{.data.postgresql-password}' | base64 --decode)" > "$path"/output/postgres-migration.sh
+    # shellcheck disable=SC2129
+    echo "export POSTGRESQL_PVC=$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath='{.items[0].metadata.name}')" >> "$path"/output/postgres-migration.sh
+    echo "kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan" >> "$path"/output/postgres-migration.sh
+    echo "kubectl delete secret postgresql --namespace $namespace" >> "$path"/output/postgres-migration.sh
+    fi
+}
+
 output_message(){
     echo ""
     echo "############ HELM COMMANDS ################"
@@ -359,27 +377,11 @@ output_message(){
     echo "- $path/output/helm-values.yaml"
     echo ""
     echo "-------------------------------------------------------------------------"
-    
-    echo "## Postgres Chart Upgrade Preparation"
-    echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
-    echo "Before upgrading, we need to prepare your postgres instance."
-    echo "This is only needed if your Postgres Instance is not externalized."
-    echo ""
-    echo "# Collect your postgres user's password and the PVC attached to your postgres instance"
-    echo "export POSTGRESQL_PASSWORD=\$(kubectl get secret --namespace $namespace postgresql -o jsonpath=\"{.data.postgresql-password}\" | base64 --decode)"
-    echo "export POSTGRESQL_PVC=\$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath=\"{.items[0].metadata.name}\")"
-    echo "# remove the postgres statefulset without terminating your postgres instance"
-    echo "kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan"
-    echo "# remove the existing secret containing your postgres password. This will get recreated during upgrade."
-    echo "kubectl delete secret postgresql --namespace $namespace"
-    echo ""
-    echo "-------------------------------------------------------------------------"
-    
+
     echo "## Helm login to cciserver.azurecr.io"
-    echo "export HELM_EXPERIMENTAL_OCI=1"
     echo "helm registry login cciserver.azurecr.io --username <image-registry-username> --password <image-registry-password>"
     echo ""
-    
+
     echo "## Helm Diff (optional)"
     echo "The Helm Diff tool is used to verify that the changes between your current install and the upgrade are expected."
     echo ""
@@ -387,9 +389,13 @@ output_message(){
     echo "helm diff upgrade $slug -n $namespace -f $path/output/helm-values.yaml --show-secrets --context 5 $CHART --version 4.0.0"
     echo ""
     echo "-------------------------------------------------------------------------"
-    
+
     echo "## Helm Upgrade CircleCI Server"
+    if "$POSTGRES_INTERNAL"; then
+    echo "source $path/output/postgres-migration.sh && helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml $CHART --version 4.0.0 --force"
+    else
     echo "helm upgrade $slug -n $namespace -f $path/output/helm-values.yaml $CHART --version 4.0.0 --force"
+    fi
 
     echo ""
     domainName="$(awk '/domainName/ {print $2;exit;}' "$path"/output/helm-values.yaml)"
@@ -469,6 +475,7 @@ elif [[ "$func" == "all" ]]; then
     fi
     rm_kots_annot_label_resources
     execute_flyway_migration
+    create_postgres_migration
     output_message
 else
     echo ""
