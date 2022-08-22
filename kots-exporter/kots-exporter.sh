@@ -14,8 +14,6 @@ help_init_options() {
     echo "    ./kots-exporter.sh [arguments]"
     echo ""
     echo "Arguments:"
-    echo "  -a|--release-name       (Required) release name of your CircleCI server install"
-    echo "                           Defaults to 'circleci-server'"
     echo "  -n|--namespace          (Required) k8s namespace where kots admin is installed"
     echo "                           Defaults to 'circleci-server'"
     echo "  -r|--annotate           (Optional) Annotate k8s resources if set to 1"
@@ -27,20 +25,20 @@ help_init_options() {
 
     echo ""
     echo "Example :-"
-    echo "# Run kots-exporter with release-name and namespace"
-    echo "./kots-exporter.sh -a <release-name> -n <k8s-namespace> -l <license>"
+    echo "# Run kots-exporter with namespace"
+    echo "./kots-exporter.sh -n <k8s-namespace> -l <license>"
     echo ""
     echo "# Run execute_flyway_migration (database migration)"
-    echo "./kots-exporter.sh -a <release-name> -n <k8s-namespace> -f flyway"
+    echo "./kots-exporter.sh -n <k8s-namespace> -f flyway"
     echo ""
     echo "# Run helm annotation function only"
-    echo "./kots-exporter.sh -a <release-name> -n <k8s-namespace> -f annotate"
+    echo "./kots-exporter.sh -n <k8s-namespace> -f annotate"
     echo ""
     echo "# Run kots annotation/label cleanup function only"
-    echo "./kots-exporter.sh -a <release-name> -n <k8s-namespace> -f cleanup_kots"
+    echo "./kots-exporter.sh -n <k8s-namespace> -f cleanup_kots"
     echo ""
     echo "# To display output message again"
-    echo "./kots-exporter.sh -a <release-name> -n <k8s-namespace> -f message"
+    echo "./kots-exporter.sh -n <k8s-namespace> -f message"
 }
 
 check_prereq(){
@@ -91,16 +89,6 @@ check_required_args(){
     echo "############ CHECKING REQUIRED ARGUMENTS ################"
 
     # check for required arguments
-    if [[ -z $slug || -z $namespace ]];
-    then
-        echo "We need some information before we can begin:"
-    fi
-
-    if [ -z "$slug" ];
-    then
-        read -r -p 'Release name (circleci-server): ' slug
-    fi
-
     if [ -z "$namespace" ];
     then
         read -r -p 'KOTS admin namespace (circleci-server): ' namespace
@@ -117,10 +105,7 @@ set_default_value(){
     echo "############ SET DEFAULT VALUES ################"
 
     # set defaults
-    if [ -z "$slug" ];
-    then
-        slug="circleci-server"
-    fi
+    slug="circleci-server"
 
     if [ -z "$namespace" ];
     then
@@ -441,9 +426,6 @@ log_setup
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -a|--release-name)
-            slug="$2";
-            shift ;;
         -n|--namespace)
             namespace="$2";
             shift ;;
@@ -485,8 +467,8 @@ elif [[ "$func" == "all" ]]; then
     if [[ $annotate == 1 ]]; then
         annotation_k8s_resource
     fi
-    execute_flyway_migration
     rm_kots_annot_label_resources
+    execute_flyway_migration
     output_message
 else
     echo ""
