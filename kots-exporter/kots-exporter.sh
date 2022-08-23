@@ -197,6 +197,10 @@ modify_helm_values(){
     yq -i '.global.container.org = ""' "$path"/output/helm-values.yaml || error_exit "Org addition has failed."
 
     echo ""
+    echo "Decoding Telegraf Config"
+    DATA=$( yq '.telegraf.config.custom_config_file' $path/output/helm-values.yaml | base64 -d) yq -i '.telegraf.config.custom_config_file = strenv(DATA)' $path/output/helm-values.yaml || error_exit "Decoding Telegraf config has failed."
+
+    echo ""
     echo "Altering Postgres block for new chart"
     if [[ $(yq '.postgresql.internal' "$path"/output/helm-values.yaml) == true ]]
     then
