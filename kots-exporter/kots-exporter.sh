@@ -364,8 +364,8 @@ create_postgres_migration(){
     echo "export POSTGRESQL_PASSWORD='$(kubectl get secret --namespace $namespace postgresql -o jsonpath='{.data.postgresql-password}' | base64 --decode)'" > "$path"/output/postgres-migration.sh
     # shellcheck disable=SC2129
     echo "export POSTGRESQL_PVC='$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath='{.items[0].metadata.name}')'" >> "$path"/output/postgres-migration.sh
-    echo "kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan" >> "$path"/output/postgres-migration.sh
-    echo "kubectl delete secret postgresql --namespace $namespace" >> "$path"/output/postgres-migration.sh
+    kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan
+    kubectl delete secret postgresql --namespace $namespace
     fi
 }
 
