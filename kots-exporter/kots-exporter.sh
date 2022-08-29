@@ -380,7 +380,7 @@ output_message(){
     echo "-------------------------------------------------------------------------"
 
     echo "## Helm login to cciserver.azurecr.io"
-    echo "echo <image-registry-password> | helm registry login cciserver.azurecr.io --username <image-registry-username> --password-stdin"
+    echo "helm registry login cciserver.azurecr.io --username <image-registry-username>"
     echo ""
 
     echo "## Helm Diff (optional)"
