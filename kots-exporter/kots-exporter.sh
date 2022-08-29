@@ -355,7 +355,7 @@ rm_kots_annot_label_resources(){
 create_postgres_migration(){
     if "$POSTGRES_INTERNAL"; then
     echo ""
-    echo "############ CREATING POSTGRES MIGRATION SCRIPT ############"
+    echo "############ PREPARING POSTGRES FOR MIGRATION ############"
 
     echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
     echo "Before upgrading, we need to prepare your postgres instance."
