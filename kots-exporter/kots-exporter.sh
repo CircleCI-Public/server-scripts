@@ -262,7 +262,9 @@ modify_helm_values(){
     -ve "extra_annotations: null" \
     -ve "annotations: null" \
     -ve "password: null" \
-    -ve "username: null" "$path"/output/helm-values.yaml > "$path"/output/temp  \
+    -ve "username: null" \
+    -ve "service_account: null" \
+    -ve 'service_account: ""' "$path"/output/helm-values.yaml > "$path"/output/temp  \
     && mv "$path"/output/temp  "$path"/output/helm-values.yaml
 }
 
