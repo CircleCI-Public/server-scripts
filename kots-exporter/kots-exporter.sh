@@ -352,23 +352,11 @@ postgres_migration(){
     if "$POSTGRES_INTERNAL"; then
     echo ""
     echo "############ PREPARING POSTGRES FOR MIGRATION ############"
-
     echo "Upgrading to server CircleCI server 4.0 includes upgrading the Postgres chart"
     echo "Before upgrading, we need to prepare your postgres instance."
 
-    export POSTGRESQL_PASSWORD="$(kubectl get secret --namespace $namespace postgresql -o jsonpath='{.data.postgresql-password}' | base64 --decode)"
-    export POSTGRESQL_PVC="$(kubectl get pvc --namespace $namespace -l app.kubernetes.io/instance=circleci-server,role=primary -o jsonpath='{.items[0].metadata.name}')"
     kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan
     kubectl delete secret postgresql --namespace $namespace
-
-    echo ""
-    echo "Postgres PVC Name: $POSTGRESQL_PVC"
-    echo ""
-    echo "Creating & tagging Postgresql Secret"
-    kubectl -n $namespace create secret generic postgresql --from-literal=postgres-password="$POSTGRESQL_PASSWORD"
-    kubectl -n $namespace annotate secret/postgresql --all meta.helm.sh/release-name=$slug meta.helm.sh/release-namespace=$namespace --overwrite
-    kubectl -n $namespace label secret/postgresql --all app.kubernetes.io/managed-by=Helm --overwrite
-    fi
 }
 
 output_message(){
