@@ -353,7 +353,7 @@ postgres_migration(){
     echo ""
     echo "############ PREPARING POSTGRES FOR MIGRATION ############"
 
-    echo "Upgrading to server CircleCI Server 4.0 includes upgrading the Postgres chart"
+    echo "Upgrading to server CircleCI server 4.0 includes upgrading the Postgres chart"
     echo "Before upgrading, we need to prepare your postgres instance."
 
     export POSTGRESQL_PASSWORD="$(kubectl get secret --namespace $namespace postgresql -o jsonpath='{.data.postgresql-password}' | base64 --decode)"
