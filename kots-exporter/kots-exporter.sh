@@ -344,7 +344,7 @@ rm_kots_annot_label_resources(){
 
     echo "Deleting job inject-bottoken-xxxx"
     if [ "$(kubectl -n $namespace get jobs -o name | grep inject)" != "" ]; then
-    kubectl -n $namespace delete "$(kubectl -n $namespace get jobs -o name | grep inject)"
+        kubectl -n $namespace delete "$(kubectl -n $namespace get jobs -o name | grep inject)"
     fi
 }
 
