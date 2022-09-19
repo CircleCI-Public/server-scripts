@@ -18,6 +18,14 @@ spec:
       selector:
       - layer=execution
       name: nomad
+  - exec:
+      name: nomad-status
+      selector:
+        - app=nomad-server
+        - layer=execution
+      command: ["/bin/sh"]
+      args: ["-c","nomad node status && echo && nomad server members && echo && nomad status"]
+      timeout: 10s
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
@@ -51,7 +59,7 @@ spec:
       - selector: CLIENT_ID
         redactor: '("value": ")(?P<mask>.*)(")'
       - selector: CLIENT_SECRET
-        redactor: '("value": ")(?P<mask>.*)(")' 
+        redactor: '("value": ")(?P<mask>.*)(")'
 
   - name: Redact soketi secret
     fileSelector:
