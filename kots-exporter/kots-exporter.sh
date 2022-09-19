@@ -357,6 +357,7 @@ postgres_migration(){
 
     kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan
     kubectl delete secret postgresql --namespace $namespace
+    fi
 }
 
 output_message(){
