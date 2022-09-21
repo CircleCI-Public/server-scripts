@@ -48,6 +48,13 @@ spec:
       args: ["-c","df -h /vault/file"]
       timeout: 10s
   - exec:
+      name: pvc-redis
+      selector:
+        - app=redis
+      command: ["/bin/sh"]
+      args: ["-c","df -h /data"]
+      timeout: 10s
+  - exec:
       name: pvc-rabbitmq
       selector:
         - app.kubernetes.io/name=rabbitmq
