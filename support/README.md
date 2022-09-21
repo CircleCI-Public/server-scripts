@@ -8,7 +8,6 @@ The manifests defined in this directory are client-side, and install no resource
 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
 - [helm](https://github.com/helm/helm#install)
-- [yq](https://github.com/mikefarah/yq#install)
 
 1. Make sure circleci-server is deployed and you have access to the cluster/namespace through kubectl.
 
