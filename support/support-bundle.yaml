@@ -65,7 +65,7 @@ spec:
   - run:
       collectorName: "kubectl-events"
       command: "/bin/sh"
-      args: ["-c", "export NAMESPACE=$(helm list --all-namespaces | awk '/circleci-server-/ { print $2 }' ); kubectl get events -n $NAMESPACE" ]
+      args: ["-c", "helm list --all-namespaces | awk '/circleci-server-/ { print $2 }' | while read NS; do echo \"Namespace: $NS\" && kubectl get events -n $NS && echo; done" ]
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
