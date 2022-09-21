@@ -26,6 +26,41 @@ spec:
       command: ["/bin/sh"]
       args: ["-c","nomad node status && echo && nomad server members && echo && nomad status"]
       timeout: 10s
+  - exec:
+      name: pvc-postgres
+      selector:
+        - app.kubernetes.io/name=postgresql
+      command: ["/bin/sh"]
+      args: ["-c","df -h /bitnami/postgresql"]
+      timeout: 10s
+  - exec:
+      name: pvc-mongodb
+      selector:
+        - app.kubernetes.io/name=mongodb
+      command: ["/bin/sh"]
+      args: ["-c","df -h /bitnami/mongodb"]
+      timeout: 10s
+  - exec:
+      name: pvc-vault
+      selector:
+        - app=vault
+      command: ["/bin/sh"]
+      args: ["-c","df -h /vault/file"]
+      timeout: 10s
+  - exec:
+      name: pvc-redis
+      selector:
+        - app=redis
+      command: ["/bin/sh"]
+      args: ["-c","df -h /data"]
+      timeout: 10s
+  - exec:
+      name: pvc-rabbitmq
+      selector:
+        - app.kubernetes.io/name=rabbitmq
+      command: ["/bin/sh"]
+      args: ["-c","df -h /bitnami/rabbitmq/mnesia"]
+      timeout: 10s
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
