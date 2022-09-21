@@ -61,6 +61,11 @@ spec:
       command: ["/bin/sh"]
       args: ["-c","df -h /bitnami/rabbitmq/mnesia"]
       timeout: 10s
+  hostCollectors:
+  - run:
+      collectorName: "kubectl-events"
+      command: "/bin/sh"
+      args: ["-c", "export NAMESPACE=$(helm list --all-namespaces --filter \"circleci-server-*\" -o yaml | awk -F':' '/namespace/ { print $2 }' | sed 's/ //g'); kubectl get events -n $NAMESPACE" ]
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
