@@ -20,7 +20,14 @@ kubectl krew install preflight
 kubectl krew install support-bundle
 ```
 
-4. Upgrade preflight and support bundle (if already install)
+4. If you already have preflight and support bundle, check the version, it should be >= `0.42.0`
+
+```bash
+kubectl preflight version
+kubectl support-bundle version
+```
+
+5. Upgrade preflight and support bundle (if already install and not >= `0.42.0`)
 
 ```bash
 kubectl krew upgrade preflight
