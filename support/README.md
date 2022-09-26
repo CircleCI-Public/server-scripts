@@ -24,7 +24,7 @@ When ready, run the support bundle from the current directory and wait for it to
 
 ```bash
 # Within the server/support directory
-kubectl support-bundle support-bundle.yaml
+kubectl support-bundle --namespace=<namespace> support-bundle.yaml
 ```
 
 A sanitized .tar.gz file will be created in the current directory - this can be sent to the support team for further debugging.
