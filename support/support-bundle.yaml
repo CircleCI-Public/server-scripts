@@ -61,6 +61,11 @@ spec:
       command: ["/bin/sh"]
       args: ["-c","df -h /bitnami/rabbitmq/mnesia"]
       timeout: 10s
+  hostCollectors:
+  - run:
+      collectorName: "helm-list"
+      command: "/bin/sh"
+      args: ["-c", "helm list --all-namespaces" ]
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
