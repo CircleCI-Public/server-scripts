@@ -48,6 +48,7 @@ help_init_options() {
     echo "  -p|--skip-postgres            Skip migrating Postgres data"
     echo "  -m|--skip-mongo               Skip migrating Mongodb data"
     echo "  -v|--skip-vault               Skip migrating Vault data"
+    echo "  --server4                     Use when migrating to 4.x"
     echo "  -h|--help                     Print help text"
 }
 
@@ -73,6 +74,10 @@ init_options() {
         ;;
         -v|--skip-vault)
             SKIP_VAULT="true"
+            shift # past argument
+        ;;
+        --server4)
+            SERVER4="true"
             shift # past argument
         ;;
         -h|--help)
@@ -126,7 +131,7 @@ function circleci_database_import() {
         MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
         import_mongo
 
-        reinject_bottoken
+        # reinject_bottoken
     fi
     
     if [ ! "$SKIP_POSTGRES" = "true" ];

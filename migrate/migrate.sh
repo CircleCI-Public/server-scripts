@@ -25,7 +25,8 @@ help_init_options() {
     echo "     --host                     Hostname of the 2.x installation"
     echo "     --key                      Path to 2.x SSH key file"
     echo "     --user                     Username for 2.x SSH access"
-    echo "     --namespace                Namespace of the 3.x install"
+    echo "     --namespace                Namespace of the 3.x OR 4.x install"
+    echo "     --server4                  Use when migrating to 4.x"
     echo "  -h|--help                     Print help text"
 }
 
@@ -71,6 +72,10 @@ init_options() {
         --namespace)
             shift # need the next arg
             NAMESPACE=$1
+            shift # past argument
+        ;;
+        --server4)
+            SERVER4="--server4"
             shift # past argument
         ;;
         -h|--help)
@@ -140,6 +145,7 @@ then
     read -r -p 'Namespace: ' NAMESPACE
 fi
 
+
 echo ""
 echo "."
 echo ".."
@@ -148,6 +154,14 @@ echo ""
 echo ""
 
 echo "## CircleCI Server Migration ##"
+
+# Tell user which version of server the migration will target
+if [ ! "$SERVER4" = "--server4" ];
+then
+    echo "Migrating to Server 3.x!"
+else
+    echo "Migrating to Server 4.x!"
+fi
 
 echo "...copying export scripts remotely"
 scp -i "$KEY_FILE" "${DIR}"/2.19-*.sh "${HOST}":
@@ -170,4 +184,4 @@ scp -i "$KEY_FILE" "${HOST}":circleci_export.tar.gz .
 echo "...extracting export"
 tar zxvf circleci_export.tar.gz
 
-bash "${DIR}"/3.0-restore.sh "$SKIP" "$NAMESPACE"
+bash "${DIR}"/3.0-restore.sh "$SKIP" "$NAMESPACE" "$SERVER4"
