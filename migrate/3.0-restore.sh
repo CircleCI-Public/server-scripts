@@ -131,7 +131,7 @@ function circleci_database_import() {
         MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
         import_mongo
 
-        # reinject_bottoken
+        reinject_bottoken
     fi
     
     if [ ! "$SKIP_POSTGRES" = "true" ];
