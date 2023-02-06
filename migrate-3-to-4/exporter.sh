@@ -115,7 +115,7 @@ export_postgres() {
 # Basic sanity check / smoke test to ensure that the postgresql export performed by
 # the export_postgres function contains what we expect it to contain
 ##
-function check_postgres() {
+check_postgres() {
     echo "... verifying postgres export file"
     if [ -z "$(grep build_jobs circle.sql | head -n1)" ]
     then
@@ -136,6 +136,24 @@ function check_postgres() {
     then
         echo "[WARN] 'vms' database was not correctly exported."
     fi
+}
+
+export_mongo() {
+    MONGO_POD="mongodb-0"
+    MONGODB_USERNAME="root"
+    MONGODB_PASSWORD=$(kubectl -n "$namespace" get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
+    TEMP_DIR="/bitnami/circle-mongo"
+    kubectl -n "$namespace" exec -it "$MONGO_POD" -- bash -c "mkdir $TEMP_DIR"
+    kubectl -n "$namespace" exec -it "$MONGO_POD" -- bash -c "mongodump -u '$MONGODB_USERNAME' -p '$MONGODB_PASSWORD' --authenticationDatabase admin --db=circle_ghe --out=$TEMP_DIR"
+    kubectl -n "$namespace" cp $MONGO_POD:$TEMP_DIR ${BACKUP_DIR}/circle-mongo
+}
+
+export_vault() {
+    echo "Exporting Vault data"
+    VAULT_POD="vault-0"
+    kubectl -n "$namespace" cp -c vault "$VAULT_POD":file ${BACKUP_DIR}/file
+    tar cfz ${BACKUP_DIR}/vault-backup.tar.gz ${BACKUP_DIR}/file/
+    rm -rf ${BACKUP_DIR}/file
 }
 
 output_message(){
@@ -184,4 +202,5 @@ create_folders
 execute_flyway_migration
 export_postgres
 check_postgres
+export_mongo
 output_message
