@@ -2,7 +2,6 @@
 set -e
 
 logFile="kots-exporter-script-$(date +%Y-%h-%d-%H%M%S).log"
-kotsCleanupLogFile="kots-cleanup-$(date +%Y-%h-%d-%H%M%S).log"
 
 help_init_options() {
     echo ""
@@ -13,7 +12,6 @@ help_init_options() {
     echo "Arguments:"
     echo "  -n|--namespace          (Required) k8s namespace where kots admin is installed"
     echo "                           Defaults to 'circleci-server'"
-    echo "  -l|--license            (Required) License Key String"
     echo "  -h|--help                Print help text"
 
     echo ""
@@ -21,14 +19,6 @@ help_init_options() {
     echo "# Run kots-exporter with namespace"
     echo "./exporter.sh -n <k8s-namespace>"
     echo ""
-    echo "# Run execute_flyway_migration (database migration)"
-    echo "./kots-exporter.sh -n <k8s-namespace> -f flyway"
-    echo ""
-    echo "# Run kots annotation/label cleanup function only"
-    echo "./kots-exporter.sh -n <k8s-namespace> -f cleanup_kots"
-    echo ""
-    echo "# To display output message again"
-    echo "./kots-exporter.sh -n <k8s-namespace> -f message"
 }
 
 check_prereq(){
