@@ -106,9 +106,10 @@ execute_flyway_migration(){
 }
 
 export_postgres() {
+    echo "Exporting PostgreSQL data"
     PG_POD=$(kubectl -n "$NAMESPACE" get pods | grep postgresql | tail -1 | awk '{print $1}')
     PG_PASSWORD=$(kubectl -n "$NAMESPACE" get secrets postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
-    kubectl -n "$namepsace" exec -it "$PG_POD" -- bash -c "export PGPASSWORD='$PG_PASSWORD' && pg_dumpall -U postgres -c" > circle.sql
+    kubectl -n "$NAMESPACE" exec -it "$PG_POD" -- bash -c "export PGPASSWORD='$PG_PASSWORD' && pg_dumpall -U postgres -c" > circle.sql
 }
 
 ##
@@ -139,6 +140,7 @@ check_postgres() {
 }
 
 export_mongo() {
+    echo "Exporting MongoDB data"
     MONGO_POD="mongodb-0"
     MONGODB_USERNAME="root"
     MONGODB_PASSWORD=$(kubectl -n "$namespace" get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
@@ -203,4 +205,5 @@ execute_flyway_migration
 export_postgres
 check_postgres
 export_mongo
+export_vault
 output_message
