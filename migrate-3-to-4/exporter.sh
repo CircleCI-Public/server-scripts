@@ -3,6 +3,8 @@ set -e
 
 logFile="kots-exporter-script-$(date +%Y-%h-%d-%H%M%S).log"
 
+export BACKUP_DIR="circleci_export"
+
 help_init_options() {
     echo ""
     # Help message for Init menu
@@ -53,8 +55,8 @@ create_folders(){
     echo "############ CREATING FOLDERS ################"
 
     # Creating
-    rm -rf  "$path/output" 2> /dev/null
-    mkdir -p "$path/output" && echo "output folder has been created."
+    rm -rf  "${path:?}/${BACKUP_DIR}" 2> /dev/null
+    mkdir -p "$path/${BACKUP_DIR}" && echo "output folder has been created."
 }
 
 execute_flyway_migration(){
@@ -97,9 +99,9 @@ execute_flyway_migration(){
 
 export_postgres() {
     echo "Exporting PostgreSQL data"
-    PG_POD=$(kubectl -n "$NAMESPACE" get pods | grep postgresql | tail -1 | awk '{print $1}')
-    PG_PASSWORD=$(kubectl -n "$NAMESPACE" get secrets postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
-    kubectl -n "$NAMESPACE" exec -it "$PG_POD" -- bash -c "export PGPASSWORD='$PG_PASSWORD' && pg_dumpall -U postgres -c" > circle.sql
+    PG_POD=$(kubectl -n "$namespace" get pods | grep postgresql | tail -1 | awk '{print $1}')
+    PG_PASSWORD=$(kubectl -n "$namespace" get secrets postgresql -o jsonpath="{.data.postgresql-password}" | base64 --decode)
+    kubectl -n "$namespace" exec -it "$PG_POD" -- bash -c "export PGPASSWORD='$PG_PASSWORD' && pg_dumpall -U postgres -c" > ${BACKUP_DIR}/circle.sql
 }
 
 ##
@@ -107,23 +109,23 @@ export_postgres() {
 # the export_postgres function contains what we expect it to contain
 ##
 check_postgres() {
-    echo "... verifying postgres export file"
-    if [ -z "$(grep build_jobs circle.sql | head -n1)" ]
+    echo "Verifying postgres export file"
+    if [ -z "$(grep build_jobs ${BACKUP_DIR}/circle.sql | head -n1)" ]
     then
         echo "[FATAL] Something is wrong with the postgresql export file for 'conductor_production' database, please contact CircleCI support at enterprise-support@circleci.com for further assistance."
         exit 1
     fi
-    if [ -z "$(grep contexts circle.sql | head -n1)" ]
+    if [ -z "$(grep contexts ${BACKUP_DIR}/circle.sql | head -n1)" ]
     then
         echo "[FATAL] Something is wrong with the postgresql export file for 'contexts_service_production' database, please contact CircleCI support at enterprise-support@circleci.com for further assistance."
         exit 1
     fi
-    if [ -z "$(grep qrtz_blob_triggers circle.sql | head -n1)" ]
+    if [ -z "$(grep qrtz_blob_triggers ${BACKUP_DIR}/circle.sql | head -n1)" ]
     then
         echo "[FATAL] Something is wrong with the postgresql export file for 'cron_service_production' database, please contact CircleCI support at enterprise-support@circleci.com for further assistance."
         exit 1
     fi
-    if [ -z "$(grep tasks circle.sql | head -n1)" ]
+    if [ -z "$(grep tasks ${BACKUP_DIR}/circle.sql | head -n1)" ]
     then
         echo "[WARN] 'vms' database was not correctly exported."
     fi
@@ -191,7 +193,7 @@ done
 
 check_prereq
 create_folders
-execute_flyway_migration
+# execute_flyway_migration
 export_postgres
 check_postgres
 export_mongo
