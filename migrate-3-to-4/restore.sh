@@ -10,8 +10,8 @@ source "$DIR"/preflight.sh
 source "$DIR"/postgres.sh
 # shellcheck source=migrate/3.0-mongo.sh
 source "$DIR"/mongo.sh
-# # shellcheck source=migrate/3.0-vault.sh
-# source "$DIR"/3.0-vault.sh
+# shellcheck source=migrate-3-to-4/vault.sh
+source "$DIR"/vault.sh
 # # shellcheck source=migrate/3.0-bottoken.sh
 # source "$DIR"/3.0-bottoken.sh
 # shellcheck source=migrate-3-to-4/scale.sh
@@ -20,7 +20,7 @@ source "$DIR"/scale.sh
 # source "$DIR"/3.0-key.sh
 
 export BACKUP_DIR="circleci_export"
-export VAULT_BU="${BACKUP_DIR}/vault"
+export VAULT_BU="${BACKUP_DIR}"
 export MONGO_BU="${BACKUP_DIR}/circle-mongo"
 export PG_BU="${BACKUP_DIR}"
 
@@ -85,11 +85,9 @@ function circleci_database_import() {
 
     import_postgres
 
-    # import_vault
+    import_vault
 
-    # scale_deployments 1
-
-    # echo "CircleCI Server Import Complete"
+    scale_deployments 1
 
     # scale_reminder
     # key_reminder
