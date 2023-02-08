@@ -14,8 +14,8 @@ source "$DIR"/preflight.sh
 # source "$DIR"/3.0-vault.sh
 # # shellcheck source=migrate/3.0-bottoken.sh
 # source "$DIR"/3.0-bottoken.sh
-# # shellcheck source=migrate/3.0-scale.sh
-# source "$DIR"/3.0-scale.sh
+# shellcheck source=migrate-3-to-4/scale.sh
+source "$DIR"/scale.sh
 # # shellcheck source=migrate/3.0-key.sh
 # source "$DIR"/3.0-key.sh
 
@@ -71,48 +71,23 @@ function circleci_database_import() {
 
     preflight_checks
 
-    echo "done"
+    scale_deployments 0
 
-    # if [ ! "$SKIP_MONGO $SKIP_POSTGRES $SKIP_VAULT" = "true true true" ];
-    # then
-    #     echo "...scaling application deployments to 0..."
-    #     scale_deployments 0
+    # delete pod to clear any remaining connections
+    kubectl delete pod -l app.kubernetes.io/name=postgresql -n "$NAMESPACE"
 
-    #     # if postgres is internal, delete pod to clear any remaining connections
-    #     if [ ! "$SKIP_POSTGRES" = "true" ];
-    #     then
-    #         kubectl delete pod -l app.kubernetes.io/name=postgresql -n "$NAMESPACE"
-    #     fi
+    # wait one minute for pods to finish scaling down
+    sleep 60
 
-    #     # wait one minute for pods to scale down
-    #     sleep 60
-    # fi
+    # import_mongo
 
-    # if [ ! "$SKIP_MONGO" = "true" ];
-    # then
-    #     MONGO_BU="${BACKUP_DIR}/circleci-mongo-export"
-    #     import_mongo
+    # reinject_bottoken
 
-    #     reinject_bottoken
-    # fi
+    # import_postgres
 
-    # if [ ! "$SKIP_POSTGRES" = "true" ];
-    # then
-    #     PG_BU="${BACKUP_DIR}/circleci-pg-export"
-    #     import_postgres
-    # fi
+    # import_vault
 
-    # if [ ! "$SKIP_VAULT" = "true" ];
-    # then
-    #     VAULT_BU="${BACKUP_DIR}/circleci-vault"
-    #     import_vault
-    # fi
-
-    # if [ ! "$SKIP_MONGO $SKIP_POSTGRES $SKIP_VAULT" = "true true true" ];
-    # then
-    #     echo "...scaling application deployments to 1..."
-    #     scale_deployments 1
-    # fi
+    # scale_deployments 1
 
     # echo "CircleCI Server Import Complete"
 

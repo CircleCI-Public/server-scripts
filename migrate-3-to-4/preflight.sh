@@ -5,6 +5,7 @@
 #   make sure the namespace exists
 ##
 function preflight_checks() {
+    echo "Starting preflight checks"
     if [ -z "$NAMESPACE" ]
     then
         echo "Syntax: restore.sh <namespace>"
@@ -34,4 +35,5 @@ function preflight_checks() {
         echo "Vault data at '$VAULT_BU' not found (or is empty)"
         exit 1
     fi
+    echo "Finishing preflight checks"
 }
