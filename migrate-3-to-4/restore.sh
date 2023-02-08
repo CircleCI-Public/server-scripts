@@ -6,10 +6,10 @@ DIR=$(dirname "$0")
 
 # shellcheck source=migrate-3-to-4/preflight.sh
 source "$DIR"/preflight.sh
-# # shellcheck source=migrate/3.0-postgres.sh
-# source "$DIR"/3.0-postgres.sh
-# # shellcheck source=migrate/3.0-mongo.sh
-# source "$DIR"/3.0-mongo.sh
+# shellcheck source=migrate-3-to-4/postgres.sh
+source "$DIR"/postgres.sh
+# shellcheck source=migrate/3.0-mongo.sh
+source "$DIR"/mongo.sh
 # # shellcheck source=migrate/3.0-vault.sh
 # source "$DIR"/3.0-vault.sh
 # # shellcheck source=migrate/3.0-bottoken.sh
@@ -21,7 +21,7 @@ source "$DIR"/scale.sh
 
 export BACKUP_DIR="circleci_export"
 export VAULT_BU="${BACKUP_DIR}/vault"
-export MONGO_BU="${BACKUP_DIR}"
+export MONGO_BU="${BACKUP_DIR}/circle-mongo"
 export PG_BU="${BACKUP_DIR}"
 
 ARGS="${*:1}"
@@ -83,7 +83,7 @@ function circleci_database_import() {
 
     # reinject_bottoken
 
-    # import_postgres
+    import_postgres
 
     # import_vault
 

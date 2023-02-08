@@ -26,7 +26,7 @@ function preflight_checks() {
     then
         echo "Postgres data at '$PG_BU/circle.sql' not found (or is empty)"
         exit 1
-    elif [ ! -s "$MONGO_BU"/circle-mongo ]
+    elif [ ! -s "$MONGO_BU" ]
     then
         echo "Mongo data at '$MONGO_BU' not found (or is empty)"
         exit 1
