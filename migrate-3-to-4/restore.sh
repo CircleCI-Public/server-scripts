@@ -12,8 +12,8 @@ source "$DIR"/postgres.sh
 source "$DIR"/mongo.sh
 # shellcheck source=migrate-3-to-4/vault.sh
 source "$DIR"/vault.sh
-# # shellcheck source=migrate/3.0-bottoken.sh
-# source "$DIR"/3.0-bottoken.sh
+# shellcheck source=migrate-3-to-4/bottoken.sh
+source "$DIR"/bottoken.sh
 # shellcheck source=migrate-3-to-4/scale.sh
 source "$DIR"/scale.sh
 # # shellcheck source=migrate/3.0-key.sh
@@ -81,7 +81,7 @@ function circleci_database_import() {
 
     import_mongo
 
-    # reinject_bottoken
+    reinject_bottoken
 
     import_postgres
 
