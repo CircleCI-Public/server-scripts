@@ -8,7 +8,7 @@ DIR=$(dirname "$0")
 source "$DIR"/preflight.sh
 # shellcheck source=migrate-3-to-4/postgres.sh
 source "$DIR"/postgres.sh
-# shellcheck source=migrate/3.0-mongo.sh
+# shellcheck source=migrate-3-to-4/mongo.sh
 source "$DIR"/mongo.sh
 # shellcheck source=migrate-3-to-4/vault.sh
 source "$DIR"/vault.sh
@@ -79,7 +79,7 @@ function circleci_database_import() {
     # wait one minute for pods to finish scaling down
     sleep 60
 
-    # import_mongo
+    import_mongo
 
     # reinject_bottoken
 
