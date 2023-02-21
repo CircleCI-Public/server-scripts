@@ -64,11 +64,9 @@ execute_flyway_migration(){
     echo "############ RUNNING FLYWAY DB MIGRATION JOB ################"
 
     echo "Checking if job/circle-migrator already ran -"
-    if kubectl get job/circle-migrator -n $namespace -o name > /dev/null 2>&1
+    if kubectl get job/circle-migrator -n "$namespace" -o name > /dev/null 2>&1
     then
-        echo "Job circle-migrator has already been run, If you want to run again, delete the job circle-migrator via below command"
-        echo "kubectl delete job/circle-migrator -n $namespace"
-        echo "To Rerun: ./kots-exporter.sh -a $slug -n $namespace -f flyway"
+        echo "Job circle-migrator has already been run"
         error_exit
     fi
 
@@ -87,7 +85,7 @@ execute_flyway_migration(){
     if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=600s); then
         echo "++++ DB Migration job is successful."
         echo "Fetching pod logs -"
-        kubectl  -n "$namespace" logs "$(kubectl -n $namespace get pods -l app=circle-migrator -o name)" > "$path"/logs/circle-migrator.log
+        kubectl  -n "$namespace" logs "$(kubectl -n "$namespace" get pods -l app=circle-migrator -o name)" > "$path"/logs/circle-migrator.log
         echo "Pod log is available at $path/logs/circle-migrator.log"
         echo "Removing job/circle-migrator -"
         kubectl delete job/circle-migrator --namespace "$namespace"
