@@ -148,6 +148,17 @@ export_vault() {
     rm -rf ${BACKUP_DIR}/file
 }
 
+export_keys() {
+    echo "Exporting Keyset Keys"
+
+    SIGN_KEY=$(kubectl get deployment frontend -o json | jq '.spec.template.spec.containers[0].env | map(select(.name == "CIRCLE_SECRETS__KEYSET__SIGN"))[0].value')
+    echo $SIGN_KEY >> ${BACKUP_DIR}/signkey
+    ENCRYPTION_KEY=$(kubectl get deployment frontend -o json | jq '.spec.template.spec.containers[0].env | map(select(.name == "CIRCLE_SECRETS__KEYSET__CRYPT"))[0].value')
+    echo $ENCRYPTION_KEY >> ${BACKUP_DIR}/encryptkey
+
+
+}
+
 output_message(){
     echo ""
     echo "NOTE: After server 3.x to 4.x migration, You must rerun the Nomad terraform with modified value of 'server_endpoint' variable"
@@ -191,9 +202,10 @@ done
 
 check_prereq
 create_folders
-# execute_flyway_migration
+execute_flyway_migration
 export_postgres
 check_postgres
 export_mongo
 export_vault
+export_keys
 output_message
