@@ -79,11 +79,11 @@ function circleci_database_import() {
     # wait one minute for pods to finish scaling down
     sleep 60
 
-    # import_mongo
+    import_mongo
 
-    # reinject_bottoken
+    reinject_bottoken
 
-    # import_postgres
+    import_postgres
 
     import_vault
 
