@@ -16,8 +16,8 @@ source "$DIR"/vault.sh
 source "$DIR"/bottoken.sh
 # shellcheck source=migrate-3-to-4/scale.sh
 source "$DIR"/scale.sh
-# # shellcheck source=migrate/3.0-key.sh
-# source "$DIR"/3.0-key.sh
+# shellcheck source=migrate-3-to-4/key.sh
+source "$DIR"/key.sh
 
 export BACKUP_DIR="circleci_export"
 export VAULT_BU="${BACKUP_DIR}"
@@ -79,18 +79,18 @@ function circleci_database_import() {
     # wait one minute for pods to finish scaling down
     sleep 60
 
-    import_mongo
+    # import_mongo
 
-    reinject_bottoken
+    # reinject_bottoken
 
-    import_postgres
+    # import_postgres
 
     import_vault
 
     scale_deployments 1
 
-    # scale_reminder
-    # key_reminder
+    scale_reminder
+    key_reminder
 }
 
 
