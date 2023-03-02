@@ -1,5 +1,5 @@
 # Migrating 3 to 4
-**Stop!** You probably want [kots-exporter](../kots-exporter/).  This script should only be used at the recomendation of your CircleCI Contact.
+**Stop!** You probably want [kots-exporter](../kots-exporter/).  This script should only be used at the recommendation of your CircleCI Contact.
 
 ## Prequsites
 1. There exists a 4.0 instance where reality check has successfully run.
