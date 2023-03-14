@@ -66,7 +66,7 @@ check_postreq(){
     echo ""
     echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"
     # check if helm release exists
-    if  [[ "$(helm list -o yaml  | yq '.[].name')" != "$slug" ]]
+    if  [[ "$(helm list -n $namespace -o yaml  | yq '.[].name')" != "$slug" ]]
     then
         error_exit "Helm release $slug does not exist."
     fi
