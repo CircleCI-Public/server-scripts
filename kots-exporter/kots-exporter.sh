@@ -65,16 +65,16 @@ check_prereq(){
 check_postreq(){
     echo ""
     echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"
-    # check if helm release exists
-    if  [[ "$(helm list -o yaml  | yq '.[].name')" != "$slug" ]]
-    then
-        error_exit "Helm release $slug does not exist."
-    fi
-
     # check if namespace exists
     if ! kubectl get ns "$namespace" -o name > /dev/null 2>&1
     then
         error_exit "Namespace $namespace does not exist in k8s cluster."
+    fi
+
+    # check if helm release exists
+    if  [[ "$(helm list -n $namespace -o yaml  | yq '.[].name')" != "$slug" ]]
+    then
+        error_exit "Helm release $slug does not exist."
     fi
 
     # check if secret/regcred exists
