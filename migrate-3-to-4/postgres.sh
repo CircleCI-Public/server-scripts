@@ -11,9 +11,9 @@ function import_postgres() {
     # The postgres dump will drop all resources before trying to create new ones, including the postgres user.
     # Remove the lines that would delete the postgres user.
     # this is not a problem when migrating from 2.19 becuase 2.19's username was 'circle'
-    sed -i ".bak" '/DROP ROLE postgres/d' "$PG_BU"/circle.sql
-    sed -i ".bak" '/CREATE ROLE postgres/d' "$PG_BU"/circle.sql
-    sed -i ".bak" '/ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD/d' "$PG_BU"/circle.sql
+    sed -i".bak" '/DROP ROLE postgres/d' "$PG_BU"/circle.sql
+    sed -i".bak" '/CREATE ROLE postgres/d' "$PG_BU"/circle.sql
+    sed -i".bak" '/ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD/d' "$PG_BU"/circle.sql
 
     # Note: This import assumes `pg_dumpall -c` was run to drop tables before ...importing into them.
     kubectl -n "$NAMESPACE" exec -i "$PG_POD" -- env PGPASSWORD="$PG_PASSWORD" psql -U postgres < "$PG_BU"/circle.sql
