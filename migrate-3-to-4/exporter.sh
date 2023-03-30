@@ -151,10 +151,10 @@ export_vault() {
 export_keys() {
     echo "Exporting Keyset Keys"
 
-    SIGN_KEY=$(kubectl get deployment frontend -o json | jq '.spec.template.spec.containers[0].env | map(select(.name == "CIRCLE_SECRETS__KEYSET__SIGN"))[0].value')
-    echo "$SIGN_KEY" >> ${BACKUP_DIR}/signkey
-    ENCRYPTION_KEY=$(kubectl get deployment frontend -o json | jq '.spec.template.spec.containers[0].env | map(select(.name == "CIRCLE_SECRETS__KEYSET__CRYPT"))[0].value')
-    echo "$ENCRYPTION_KEY" >> ${BACKUP_DIR}/encryptkey
+    SIGN_KEY=$(kubectl -n "$namespace" get deployment frontend -o json | jq '.spec.template.spec.containers[0].env | map(select(.name == "CIRCLE_SECRETS__KEYSET__SIGN"))[0].value')
+    echo "$SIGN_KEY" > ${BACKUP_DIR}/signkey
+    ENCRYPTION_KEY=$(kubectl -n "$namespace" get deployment frontend -o json | jq '.spec.template.spec.containers[0].env | map(select(.name == "CIRCLE_SECRETS__KEYSET__CRYPT"))[0].value')
+    echo "$ENCRYPTION_KEY" > ${BACKUP_DIR}/encryptkey
 
 
 }
