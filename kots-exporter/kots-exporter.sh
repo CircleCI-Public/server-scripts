@@ -72,7 +72,7 @@ check_postreq(){
     fi
 
     # check if helm release exists
-    if  [[ "$(helm list -n "$namespace" -o yaml  | yq '.[].name')" != "$slug" ]]
+    if  [[ "$(helm list -n "$namespace" -o yaml  | yq -e 'map(.name) | contains([strenv(slug)])' > /dev/null 2>&1)" ]]
     then
         error_exit "Helm release $slug does not exist."
     fi
