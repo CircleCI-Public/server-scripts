@@ -1,7 +1,7 @@
 # Migrating 3 to 4
 **Stop!** You probably want [kots-exporter](../kots-exporter/).  This script should only be used at the recommendation of your CircleCI Contact.
 
-## Prequsites
+## Prerequsites
 1. There exists a 4.0 instance where reality check has successfully run.
 
 2. In the 3.4 environment, add the same [docker-registry secret](https://circleci.com/docs/server/installation/phase-2-core-services/#pull-images) that is used in the 4.0 environment
