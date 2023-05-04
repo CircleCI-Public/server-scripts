@@ -16,7 +16,7 @@ API token you've been supplied will allow you to pull these images. To do so we 
 to create a Docker registry secret in your Kubernetes cluster namespace:
 
 ```
-$ kubectl create secret docker-registry -n <circleci-app-namespace> regcred \
+$ kubectl create secret docker-registry -n <circleci-namespace> regcred \
   --docker-server=https://cciserver.azurecr.io/ \
   --docker-username=<image-registry-username> \
   --docker-password=<image-registry-password> \
