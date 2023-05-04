@@ -28,7 +28,7 @@ $ kubectl create secret docker-registry -n <circleci-namespace> regcred \
 
 **view arguments:** `./kots-exporter.sh --help`
 
-**command:** `./kots-exporter.sh -n <circleci-app-namespace> -a <release-name> -l <license>`
+**command:** `./kots-exporter.sh -n <circleci-namespace> -a <release-name> -l <license>`
 
 **example usage:**
 ```
