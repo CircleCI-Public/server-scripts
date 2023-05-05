@@ -40,7 +40,7 @@ vault:
 
 ## Import
 
-1. Run `bash import-contexts.sh`
+1. Run `bash import-contexts.sh [--hostname <circleci-hostname>] [--token <circleci-token>]`
 
 ## Verification
 
