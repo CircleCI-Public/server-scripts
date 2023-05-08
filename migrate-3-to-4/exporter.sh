@@ -134,10 +134,11 @@ export_mongo() {
     MONGO_POD="mongodb-0"
     MONGODB_USERNAME="root"
     MONGODB_PASSWORD=$(kubectl -n "$namespace" get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
-    TEMP_DIR="/bitnami/circle-mongo"
+    TEMP_DIR="/bitnami/mongodb/circle-mongo"
     kubectl -n "$namespace" exec -it "$MONGO_POD" -- bash -c "mkdir $TEMP_DIR"
     kubectl -n "$namespace" exec -it "$MONGO_POD" -- bash -c "mongodump -u '$MONGODB_USERNAME' -p '$MONGODB_PASSWORD' --authenticationDatabase admin --db=circle_ghe --out=$TEMP_DIR"
     kubectl -n "$namespace" cp $MONGO_POD:$TEMP_DIR ${BACKUP_DIR}/circle-mongo
+    kubectl -n "$namespace" exec -it "$MONGO_POD" -- bash -c "rm -rf $TEMP_DIR"
 }
 
 export_vault() {
