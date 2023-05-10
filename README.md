@@ -17,3 +17,7 @@ This repository contains various tools and scripts which supports CircleCI serve
 ### [support](./support/)
 
 `support` directory contains support-bundle template and instruction to generate support-bundle.
+
+### [vault-to-tink](./vault-to-tink/)
+
+`vault-to-tink` enables a migration from a Vault installation to a (Google) Tink installation.
