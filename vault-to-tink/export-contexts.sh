@@ -26,7 +26,7 @@ if [ "${PORT_FORWARD_SUCCESS}" -ne 0 ]; then
   exit 1
 fi
 
-CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD psql -t -U postgres -d contexts_service_production -c \"select id,owning_grouping_ref from contexts\";" | grep -e - | sed -e 's/[ \t]|[ \t]/,/g')
+CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD PAGER= psql -t -U postgres -d contexts_service_production -c \"select id,owning_grouping_ref from contexts\";" | grep -e - | sed -e 's/[ \t]|[ \t]/,/g')
 
 for CONTEXT in $CONTEXTS; do
   CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $1}')
