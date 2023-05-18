@@ -32,7 +32,7 @@ for CONTEXT in $CONTEXTS; do
   CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $1}')
   GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}' | tr -d '\r' | tr -d '\n')
 
-  CLOJURE=$(printf "(let [obj (first (contexts-service.db/get-contexts \\\"%s\\\"))]
+  CLOJURE=$(printf "(let [obj (first (contexts-service.db/get-contexts \"%s\"))]
               (let [org-ref (:contexts-service-client.context.response/organization-ref obj)
                     resources (:contexts-service-client.context.response/resources obj)
                     keyvals (map (fn [res] {:name (:contexts-service-client.context/variable res)
@@ -40,7 +40,7 @@ for CONTEXT in $CONTEXTS; do
                                 resources)]
                 (cheshire.core/generate-string {
                                       :organization-ref org-ref
-                                      :context-id \\\"%s\\\"
+                                      :context-id \"%s\"
                                       :contexts keyvals})))" "${GROUPING_ID}" "${CONTEXT_ID}")
 
   docker run --rm -it clojure \
