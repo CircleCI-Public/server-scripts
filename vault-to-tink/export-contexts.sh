@@ -30,7 +30,7 @@ CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSW
 
 for CONTEXT in $CONTEXTS; do
   CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $1}')
-  GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}' | sed "s|[\r\n]||g")
+  GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}' | tr -d '\r' | tr -d '\n')
 
   CLOJURE=$(printf "(let [obj (first (contexts-service.db/get-contexts \\\"%s\\\"))]
               (let [org-ref (:contexts-service-client.context.response/organization-ref obj)
