@@ -4,7 +4,7 @@
 
 1. The public internet is accessible OR lein dependencies are pre-cached
 1. The kubectl context needs to be in the correct namespace (`kubectl config set-context --current --namespace <namespace>`)
-1. Docker is running and accessible to run the `clojure` container
+1. Docker is running and accessible without `sudo` to run the `clojure` container
 1. `jq` is installed.
 1. The Postgres server is internal to the CircleCI installation
 
