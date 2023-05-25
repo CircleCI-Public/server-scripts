@@ -27,6 +27,13 @@ spec:
       args: ["-c","nomad node status && echo && nomad server members && echo && nomad status"]
       timeout: 10s
   - exec:
+      name: rabbitmq-list-queues
+      selector:
+        - app.kubernetes.io/name=rabbitmq
+      command: ["/bin/sh"]
+      args: ["-c","rabbitmqctl list_queues"]
+      timeout: 10s
+  - exec:
       name: pvc-postgres
       selector:
         - app.kubernetes.io/name=postgresql
