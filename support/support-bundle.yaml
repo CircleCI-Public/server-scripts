@@ -6,18 +6,6 @@ spec:
   collectors:
   - clusterInfo: {}
   - clusterResources: {}
-  - logs:
-      selector:
-      - layer=application
-      name: application
-  - logs:
-      selector:
-      - layer=data
-      name: data
-  - logs:
-      selector:
-      - layer=execution
-      name: nomad
   - exec:
       name: nomad-status
       selector:
