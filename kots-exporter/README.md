@@ -1,4 +1,4 @@
-# server-kots-exportergs
+# server-kots-exporter
 
 This is a script to download KOTS config and convert it to a `helm` values file
 
@@ -9,13 +9,14 @@ This is a script to download KOTS config and convert it to a `helm` values file
 - [helm-diff](https://github.com/databus23/helm-diff#install) (Good to have for comparing helm releases)
 - [velero](https://velero.io/docs/v1.6/contributions/minio/#back-up) (Required for backup and restore)
 
-### Docker secret `regcred` must be exists
-The Helm chart references private container images. The DockerHub
+### A Docker secret `regcred` must exist in your namespace
+
+The Helm chart references private CircleCI container images. The DockerHub
 API token you've been supplied will allow you to pull these images. To do so we need
-to create a Docker registry secret in your Kubernetes cluster:
+to create a Docker registry secret in your Kubernetes cluster namespace:
 
 ```
-$ kubectl create secret docker-registry regcred \
+$ kubectl create secret docker-registry -n <circleci-namespace> regcred \
   --docker-server=https://cciserver.azurecr.io/ \
   --docker-username=<image-registry-username> \
   --docker-password=<image-registry-password> \
@@ -27,7 +28,7 @@ $ kubectl create secret docker-registry regcred \
 
 **view arguments:** `./kots-exporter.sh --help`
 
-**command:** `./kots-exporter.sh -n <circleci-app-namespace> -a <release-name> -l <license>`
+**command:** `./kots-exporter.sh -n <circleci-namespace> -a <release-name> -l <license>`
 
 **example usage:**
 ```
