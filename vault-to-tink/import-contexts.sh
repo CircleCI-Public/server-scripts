@@ -50,18 +50,17 @@ fi
 
 AUTH=$(printf "%s" "${CIRCLECI_TOKEN}:" | base64)
 
-for obj in $(jq -c . contexts.json); do
+jq -c . contexts.json | while read -r obj; do
   # extract the context-id
   context_id=$(echo "${obj}" | jq -r '.["context-id"]')
 
   # iterate over each context in the contexts array
-  for ctx in $(echo "${obj}" | jq -c '.["contexts"][]'); do
+  echo -n "${obj}" | jq -c '.["contexts"][]' | while read -r ctx; do
     # extract the name and value of the context
     name=$(echo "${ctx}" | jq -r '.["name"]')
     value=$(echo "${ctx}" | jq '.["value"]')
 
     # Post the data to the CircleCI server API
-    # (echo for debug purposes)
     curl --request PUT \
       --url "https://${CIRCLECI_HOSTNAME}/api/v2/context/${context_id}/environment-variable/${name}" \
       --header "Authorization: Basic ${AUTH}" \
