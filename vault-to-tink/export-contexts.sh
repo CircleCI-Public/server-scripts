@@ -26,14 +26,20 @@ if [ "${PORT_FORWARD_SUCCESS}" -ne 0 ]; then
   exit 1
 fi
 
-CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD PAGER= psql -t -U postgres -d contexts_service_production -c \"select name,id,owning_grouping_ref from contexts\";" | grep -e - | sed -e 's/[ \t]|[ \t]/,/g')
+CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD PAGER= psql -t -U postgres -d contexts_service_production -c \"select name,id,owning_grouping_ref from contexts\";" | grep -e - | sed 's/ //g')
+
+echo "Contexts Table"
+echo "----------------------------------------------------------------------------"
+echo "$CONTEXTS"
+echo "----------------------------------------------------------------------------"
+echo ""
 
 for CONTEXT in $CONTEXTS; do
-  CONTEXT_NAME=$(echo "${CONTEXT}" | awk -F, '{print $1}')
-  CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}')
-  GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $3}' | tr -d '\r' | tr -d '\n')
+  CONTEXT_NAME=$(echo "${CONTEXT}" | awk -F'|' '{print $1}')
+  CONTEXT_ID=$(echo "${CONTEXT}" | awk -F'|' '{print $2}')
+  GROUPING_ID=$(echo "${CONTEXT}" | awk -F'|' '{print $3}' | tr -d '\r' | tr -d '\n')
 
-  echo "Processing CONTEXT $CONTEXT_NAME"
+  echo "Processing context $CONTEXT_NAME ($CONTEXT_ID) with grouping id $GROUPING_ID"
 
   CLOJURE=$(printf "(let [obj (first (contexts-service.db/get-contexts \"%s\"))]
               (let [org-ref (:contexts-service-client.context.response/organization-ref obj)
