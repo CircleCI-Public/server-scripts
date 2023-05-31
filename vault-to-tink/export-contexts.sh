@@ -10,7 +10,7 @@
 SVC_NAME=contexts-service
 SVC_PORT=6005
 
-echo -n > contexts.json
+echo >contexts.json
 
 INET_ADDR="$(ip -4 route get 192.0.2.1 | grep -o 'src [0-9.]\{1,\}' | awk '{ print $2 }')"
 if [ -z "$INET_ADDR" ]; then
@@ -26,11 +26,14 @@ if [ "${PORT_FORWARD_SUCCESS}" -ne 0 ]; then
   exit 1
 fi
 
-CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD PAGER= psql -t -U postgres -d contexts_service_production -c \"select id,owning_grouping_ref from contexts\";" | grep -e - | sed -e 's/[ \t]|[ \t]/,/g')
+CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD PAGER= psql -t -U postgres -d contexts_service_production -c \"select name,id,owning_grouping_ref from contexts\";" | grep -e - | sed -e 's/[ \t]|[ \t]/,/g')
 
 for CONTEXT in $CONTEXTS; do
-  CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $1}')
-  GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}' | tr -d '\r' | tr -d '\n')
+  CONTEXT_NAME=$(echo "${CONTEXT}" | awk -F, '{print $1}')
+  CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}')
+  GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $3}' | tr -d '\r' | tr -d '\n')
+
+  echo "Processing CONTEXT $CONTEXT_NAME"
 
   CLOJURE=$(printf "(let [obj (first (contexts-service.db/get-contexts \"%s\"))]
               (let [org-ref (:contexts-service-client.context.response/organization-ref obj)
