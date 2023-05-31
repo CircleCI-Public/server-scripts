@@ -10,7 +10,7 @@
 SVC_NAME=contexts-service
 SVC_PORT=6005
 
-echo >contexts.json
+printf '' >contexts.json
 
 INET_ADDR="$(ip -4 route get 192.0.2.1 | grep -o 'src [0-9.]\{1,\}' | awk '{ print $2 }')"
 if [ -z "$INET_ADDR" ]; then
