@@ -10,7 +10,7 @@
 SVC_NAME=contexts-service
 SVC_PORT=6005
 
-echo -n > contexts.json
+printf '' >contexts.json
 
 INET_ADDR="$(ip -4 route get 192.0.2.1 | grep -o 'src [0-9.]\{1,\}' | awk '{ print $2 }')"
 if [ -z "$INET_ADDR" ]; then
@@ -26,26 +26,32 @@ if [ "${PORT_FORWARD_SUCCESS}" -ne 0 ]; then
   exit 1
 fi
 
-CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD psql -t -U postgres -d contexts_service_production -c \"select id,owning_grouping_ref from contexts\";" | grep -e - | sed -e 's/[ \t]|[ \t]/,/g')
+CONTEXTS=$(kubectl exec -it postgresql-0 -- bash -c "PGPASSWORD=\$POSTGRES_PASSWORD PAGER= psql -t -U postgres -d contexts_service_production -c \"SELECT DISTINCT(owning_grouping_ref) FROM contexts\";" | grep -e -)
+
+echo "Contexts Table"
+echo "----------------------------------------------------------------------------"
+echo "$CONTEXTS"
+echo "----------------------------------------------------------------------------"
+echo ""
 
 for CONTEXT in $CONTEXTS; do
-  CONTEXT_ID=$(echo "${CONTEXT}" | awk -F, '{print $1}')
-  GROUPING_ID=$(echo "${CONTEXT}" | awk -F, '{print $2}' | sed "s|[\r\n]||g")
+  GROUPING_ID=$(echo "$CONTEXT" | tr -d '[:space:]')
+  echo "Processing context grouping id $GROUPING_ID"
 
-  CLOJURE=$(printf "(let [obj (first (contexts-service.db/get-contexts \\\"%s\\\"))]
-              (let [org-ref (:contexts-service-client.context.response/organization-ref obj)
-                    resources (:contexts-service-client.context.response/resources obj)
-                    keyvals (map (fn [res] {:name (:contexts-service-client.context/variable res)
-                                          :value (:contexts-service-client.context/value res)})
-                                resources)]
-                (cheshire.core/generate-string {
-                                      :organization-ref org-ref
-                                      :context-id \\\"%s\\\"
-                                      :contexts keyvals})))" "${GROUPING_ID}" "${CONTEXT_ID}")
+  CLOJURE=$(printf "(doseq [obj (contexts-service.db/get-contexts \"%s\")]
+                        (let [org-ref (:contexts-service-client.context.response/organization-ref obj)
+                              context-id (:contexts-service-client.context.response/id obj)
+                              resources (:contexts-service-client.context.response/resources obj)
+                              keyvals (map (fn [res] {:name (:contexts-service-client.context/variable res)
+                                                    :value (:contexts-service-client.context/value res)})
+                                          resources)]
+                          (println (cheshire.core/generate-string {
+                                    :organization-ref org-ref
+                                    :context-id context-id
+                                    :contexts keyvals}))))" "${GROUPING_ID}")
 
   docker run --rm -it clojure \
-    bash -c "lein repl :connect \"${INET_ADDR}\":6005 <<< '${CLOJURE}'" |
-    grep '"{\\"organization-ref' |
-    jq -r \
+    bash -c "lein repl :connect \"${INET_ADDR}\":6005 <<< '$CLOJURE'" |
+    grep '{"organization-ref' \
       >>contexts.json
 done

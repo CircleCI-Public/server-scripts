@@ -4,12 +4,14 @@
 
 1. The public internet is accessible OR lein dependencies are pre-cached
 1. The kubectl context needs to be in the correct namespace (`kubectl config set-context --current --namespace <namespace>`)
-1. Docker is running and accessible to run the `clojure` container
+1. Docker is running and accessible without `sudo` to run the `clojure` container
+1. `jq` is installed.
 1. The Postgres server is internal to the CircleCI installation
 
-   - If Postgres has been externalized, please reach out to your account representitive.
+   - If Postgres has been externalized, please reach out to your account representative.
 
 1. You have a [Tink keyset](https://developers.google.com/tink/install-tinkey) ready to go with `tinkey create-keyset --key-template XCHACHA20_POLY1305`
+1. If on a Mac, please `brew install iproute2mac`
 
 Note: This script will open one REPL per context ID, where one ID is one context; not to be confused with individual variables within a context. If you have a firewall that will rate-limit you, please take that into consideration before proceeding.
 
