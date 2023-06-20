@@ -120,7 +120,6 @@ echo "Include the following in the mongodb block of your values.yaml:"
 echo ""
 echo "mongodb:
   ...
-  internal: true
   image:
     tag: 4.4.15-debian-10-r8"
 echo ""
