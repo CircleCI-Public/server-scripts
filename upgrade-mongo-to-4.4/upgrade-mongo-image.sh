@@ -43,6 +43,7 @@ init_options() {
     fi
 }
 
+# shellcheck disable=SC2086
 init_options $ARGS
 
 # MongoDB variables
@@ -73,7 +74,7 @@ function patch_mongo_image() {
     echo "MongoDB image set to $1"
   else
     echo "Failed to patch MongoDB statefulset"
-    echo $result
+    echo "$result"
     exit 1
   fi
 }
@@ -87,14 +88,14 @@ function set_compatibility_version() {
 		exit 1
 	fi
 
-  result=$(kubectl exec $MONGO_POD -- mongo -u $MONGODB_USERNAME -p $MONGODB_PASSWORD --eval "db.adminCommand({ setFeatureCompatibilityVersion: '$1' })")
+  result=$(kubectl exec "$MONGO_POD" -- mongo -u "$MONGODB_USERNAME" -p "$MONGODB_PASSWORD" --eval "db.adminCommand({ setFeatureCompatibilityVersion: '$1' })")
 
   if [[ $result == *"{ \"ok\" : 1 }"* ]]; 
   then
     echo "MongoDB upgraded to $1"
   else
     echo "Failed to set compatibility version"
-    echo $result
+    echo "$result"
     exit 1
   fi
 }
@@ -102,7 +103,7 @@ function set_compatibility_version() {
 
 for i in "${mongo_images[@]}"
 do
-  mongo_version=$(echo ${i} | cut -c1-3)
+  mongo_version=$(echo "${i}" | cut -c1-3)
 
   echo "upgrading Mongodb to $mongo_version using image: $i"
   echo "..."
