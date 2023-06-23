@@ -21,6 +21,7 @@ help_init_options() {
     echo "  -f|--func               (Optional) Run a one-off custom function"
     echo "                           Accepted values: \"annotate\",\"flyway\",\"cleanup_kots\" and \"message\""
     echo "  -l|--license            (Required) License Key String"
+    echo "  -v|--verbose             (Optional) enable verbose mode"
     echo "  -h|--help                Print help text"
 
     echo ""
@@ -39,92 +40,83 @@ help_init_options() {
     echo ""
     echo "# To display output message again"
     echo "./kots-exporter.sh -n <k8s-namespace> -f message"
+    echo ""
+    echo "# Run kots-exporter with debug mode"
+    echo "./kots-exporter.sh -n <k8s-namespace> -v"
 }
 
-check_prereq(){
+check_prereq() {
     echo ""
     # check if kubectl is installed
-    if ! command -v kubectl version &> /dev/null
-    then
+    if ! command -v kubectl version &>/dev/null; then
         error_exit "kubectl could not be found."
     fi
 
     # check helm is installed
-    if ! command -v helm version &> /dev/null
-    then
+    if ! command -v helm version &>/dev/null; then
         error_exit "helm could not be found."
     fi
 
     # check yq is installed
-    if ! command -v yq -V &> /dev/null
-    then
+    if ! command -v yq -V &>/dev/null; then
         error_exit "yq could not be found."
     fi
 }
 
-check_postreq(){
+check_postreq() {
     echo ""
     echo "############ CHECKING K8S NAMESPACE and HELM RELEASE ################"
     # check if namespace exists
-    if ! kubectl get ns "$namespace" -o name > /dev/null 2>&1
-    then
+    if ! kubectl get ns "$namespace" -o name >/dev/null 2>&1; then
         error_exit "Namespace $namespace does not exist in k8s cluster."
     fi
 
     # check if helm release exists
-    if  [[ "$(helm list -n "$namespace" -o yaml  | yq -e 'map(.name) | contains([strenv(slug)])' > /dev/null 2>&1)" ]]
-    then
+    if [[ "$(helm list -n "$namespace" -o yaml | yq -e 'map(.name) | contains([strenv(slug)])' >/dev/null 2>&1)" ]]; then
         error_exit "Helm release $slug does not exist."
     fi
 
     # check if secret/regcred exists
-    if ! kubectl get secret/regcred -n "$namespace" -o name > /dev/null 2>&1
-    then
+    if ! kubectl get secret/regcred -n "$namespace" -o name >/dev/null 2>&1; then
         error_exit "Secret regcred does not exist in k8s namespace - $namespace"
     fi
 }
 
-check_required_args(){
+check_required_args() {
     echo ""
     echo "############ CHECKING REQUIRED ARGUMENTS ################"
 
     # check for required arguments
-    if [ -z "$namespace" ];
-    then
+    if [ -z "$namespace" ]; then
         read -r -p 'KOTS admin namespace (circleci-server): ' namespace
     fi
 
-    if [[ -z "$license" ]]  &&  [[ -z "$func" ]];
-    then
+    if [[ -z "$license" ]] && [[ -z "$func" ]]; then
         read -r -p 'License Key String: ' license
     fi
 }
 
-set_default_value(){
+set_default_value() {
     echo ""
     echo "############ SET DEFAULT VALUES ################"
 
     # set defaults
     slug="circleci-server"
 
-    if [ -z "$namespace" ];
-    then
+    if [ -z "$namespace" ]; then
         namespace="circleci-server"
     fi
 
-    if [ -z "$annotate" ];
-    then
+    if [ -z "$annotate" ]; then
         annotate=1
     fi
 
-    if [ -z "$func" ];
-    then
+    if [ -z "$func" ]; then
         func="all"
     fi
 
     # check if this is a dev migration
-    if [[ $dev == true ]]
-    then
+    if [[ $dev == true ]]; then
         export REGISTRY="devcharts"
         echo "Using dev azure registry"
     else
@@ -134,27 +126,27 @@ set_default_value(){
     export CHART="oci://$REGISTRY.azurecr.io/circleci-server"
 }
 
-create_folders(){
+create_folders() {
     echo ""
     echo "############ CREATING FOLDERS ################"
 
     # Creating
-    rm -rf  "$path/output" 2> /dev/null
+    rm -rf "$path/output" 2>/dev/null
     mkdir -p "$path/output" && echo "output folder has been created."
 }
 
-download_helm_values(){
+download_helm_values() {
     echo ""
     echo "############ DOWNLOADING HELM VALUE ################"
     echo ""
     echo "Downloading helm value file from release: $slug and namespace: $namespace"
-    (helm get values "$slug" -n "$namespace" --revision 1 -o yaml > "$path"/output/helm-values.yaml \
-    && echo "++++ Helm value file download has completed") \
-    || error_exit "Helm value file download"
+    (helm get values "$slug" -n "$namespace" --revision 1 -o yaml >"$path"/output/helm-values.yaml &&
+        echo "++++ Helm value file download has completed") ||
+        error_exit "Helm value file download"
 
 }
 
-modify_helm_values(){
+modify_helm_values() {
     echo ""
     echo "############ MODIFY HELM VALUE ################"
 
@@ -177,8 +169,7 @@ modify_helm_values(){
 
     echo ""
     echo "Configuring AWS ACM"
-    if [[ $(yq '.kong.aws_acm.enabled' "$path"/output/helm-values.yaml) == true ]]
-    then
+    if [[ $(yq '.kong.aws_acm.enabled' "$path"/output/helm-values.yaml) == true ]]; then
         yq -i '.nginx.aws_acm.enabled'='true' "$path"/output/helm-values.yaml || error_exit "kong aws_acm modification has failed."
     fi
 
@@ -186,8 +177,7 @@ modify_helm_values(){
     echo "Adding mongodb-password"
     mongo_val=$(yq '.mongodb.auth.password' "$path"/output/helm-values.yaml)
     mongo_pass="$(gen_password 16)"
-    if [[ "$mongo_val" == "null"  ]]
-    then
+    if [[ "$mongo_val" == "null" ]]; then
         yq -i ".mongodb.auth.password=\"$mongo_pass\"" "$path"/output/helm-values.yaml || error_exit "mongodb-password addition has failed."
     fi
 
@@ -198,12 +188,11 @@ modify_helm_values(){
 
     echo ""
     echo "Decoding Telegraf Config"
-    DATA=$( yq '.telegraf.config.custom_config_file' "$path"/output/helm-values.yaml | base64 -d) yq -i '.telegraf.config.custom_config_file = strenv(DATA)' "$path"/output/helm-values.yaml || error_exit "Decoding Telegraf config has failed."
+    DATA=$(yq '.telegraf.config.custom_config_file' "$path"/output/helm-values.yaml | base64 -d) yq -i '.telegraf.config.custom_config_file = strenv(DATA)' "$path"/output/helm-values.yaml || error_exit "Decoding Telegraf config has failed."
 
     echo ""
     echo "Altering Postgres block for new chart"
-    if [[ $(yq '.postgresql.internal' "$path"/output/helm-values.yaml) == true ]]
-    then
+    if [[ $(yq '.postgresql.internal' "$path"/output/helm-values.yaml) == true ]]; then
         yq -i '
             .postgresql.auth.postgresPassword=.postgresql.postgresqlPassword |
             .postgresql.auth.username="" |
@@ -220,12 +209,10 @@ modify_helm_values(){
 
     echo ""
     echo "Cleaning Nomad Autoscaler Block"
-    if [[ $(yq '.nomad.auto_scaler.enabled' "$path"/output/helm-values.yaml) == false ]]
-    then
+    if [[ $(yq '.nomad.auto_scaler.enabled' "$path"/output/helm-values.yaml) == false ]]; then
         yq -i 'del(.nomad.auto_scaler.gcp)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (gcp) block deletion has failed"
         yq -i 'del(.nomad.auto_scaler.aws)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (aws) block deletion has failed"
-    elif [[ $(yq '.nomad.auto_scaler.aws.enabled' "$path"/output/helm-values.yaml) == true ]]
-    then
+    elif [[ $(yq '.nomad.auto_scaler.aws.enabled' "$path"/output/helm-values.yaml) == true ]]; then
         yq -i 'del(.nomad.auto_scaler.gcp)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (gcp) block deletion has failed"
     else
         yq -i 'del(.nomad.auto_scaler.aws)' "$path"/output/helm-values.yaml || error_exit "Nomad autoscaler (aws) block deletion has failed"
@@ -233,8 +220,7 @@ modify_helm_values(){
 
     echo ""
     echo "Cleaning VM Block"
-    if [[ $(yq '.vm_service.providers.ec2.enabled' "$path"/output/helm-values.yaml) == true ]]
-    then
+    if [[ $(yq '.vm_service.providers.ec2.enabled' "$path"/output/helm-values.yaml) == true ]]; then
         yq -i 'del(.vm_service.providers.gcp)' "$path"/output/helm-values.yaml || error_exit "VM provider (gcp) block deletion has failed"
     else
         yq -i 'del(.vm_service.providers.aws)' "$path"/output/helm-values.yaml || error_exit "VM provider (aws) block deletion has failed"
@@ -242,8 +228,7 @@ modify_helm_values(){
 
     echo ""
     echo "Cleaning S3 Block"
-    if [[ $(yq '.object_storage.s3.enabled' "$path"/output/helm-values.yaml) == true ]]
-    then
+    if [[ $(yq '.object_storage.s3.enabled' "$path"/output/helm-values.yaml) == true ]]; then
         yq -i 'del(.object_storage.gcs)' "$path"/output/helm-values.yaml || error_exit "Object Storage (gcp) block deletion has failed"
     else
         yq -i 'del(.object_storage.s3)' "$path"/output/helm-values.yaml || error_exit "Object Storage (aws) block deletion has failed"
@@ -262,34 +247,33 @@ modify_helm_values(){
     echo ""
     echo "Cleanup nulls"
     grep -ve ": null" \
-    -ve 'service_account: ""' "$path"/output/helm-values.yaml > "$path"/output/temp  \
-    && mv "$path"/output/temp  "$path"/output/helm-values.yaml
+        -ve 'service_account: ""' "$path"/output/helm-values.yaml >"$path"/output/temp &&
+        mv "$path"/output/temp "$path"/output/helm-values.yaml
 }
 
-annotation_k8s_resource(){
+annotation_k8s_resource() {
     echo ""
     echo "############ ANNOTATING K8S RESOURCES ################"
 
     # Adding Labels and Annotations for Helm
-    for resource in "${resourceList[@]}";do
+    for resource in "${resourceList[@]}"; do
         echo "Applying annotations to all $resource resources ..."
         echo ""
         {
-        kubectl -n $namespace annotate "$resource" --all meta.helm.sh/release-name=$slug meta.helm.sh/release-namespace=$namespace --overwrite
-        kubectl -n $namespace label "$resource" --all app.kubernetes.io/managed-by=Helm --overwrite
-        } >> "$path/logs/$annotateLogFile"
+            kubectl -n $namespace annotate "$resource" --all meta.helm.sh/release-name=$slug meta.helm.sh/release-namespace=$namespace --overwrite
+            kubectl -n $namespace label "$resource" --all app.kubernetes.io/managed-by=Helm --overwrite
+        } >>"$path/logs/$annotateLogFile"
     done
 
     echo "Annotation logs are available - $path/logs/$annotateLogFile"
 }
 
-execute_flyway_migration(){
+execute_flyway_migration() {
     echo ""
     echo "############ RUNNING FLYWAY DB MIGRATION JOB ################"
 
     echo "Checking if job/circle-migrator already ran -"
-    if kubectl get job/circle-migrator -n $namespace -o name > /dev/null 2>&1
-    then
+    if kubectl get job/circle-migrator -n $namespace -o name >/dev/null 2>&1; then
         echo "Job circle-migrator has already been run, If you want to run again, delete the job circle-migrator via below command"
         echo "kubectl delete job/circle-migrator -n $namespace"
         echo "To Rerun: ./kots-exporter.sh -a $slug -n $namespace -f flyway"
@@ -301,17 +285,17 @@ execute_flyway_migration(){
 
     echo "Fetching values from $FRONTEND_POD pod"
     # shellcheck disable=SC2046
-    export $(kubectl -n "$namespace" exec "$FRONTEND_POD" -c frontend -- printenv | grep -Ew 'POSTGRES_USERNAME|POSTGRES_PORT|POSTGRES_PASSWORD|POSTGRES_HOST' | xargs )
+    export $(kubectl -n "$namespace" exec "$FRONTEND_POD" -c frontend -- printenv | grep -Ew 'POSTGRES_USERNAME|POSTGRES_PORT|POSTGRES_PASSWORD|POSTGRES_HOST' | xargs)
 
     echo "Creating job/circle-migrator -"
-    ( envsubst < "$path"/templates/circle-migrator.yaml | kubectl -n "$namespace" apply -f - ) \
-    || error_exit "Job circle-migrator creation error"
+    (envsubst <"$path"/templates/circle-migrator.yaml | kubectl -n "$namespace" apply -f -) ||
+        error_exit "Job circle-migrator creation error"
 
     echo "Waiting job/circle-migrator to complete -"
     if (kubectl wait job/circle-migrator --namespace "$namespace" --for condition="complete" --timeout=600s); then
         echo "++++ DB Migration job is successful."
         echo "Fetching pod logs -"
-        kubectl  -n "$namespace" logs "$(kubectl -n $namespace get pods -l app=circle-migrator -o name)" > "$path"/logs/circle-migrator.log
+        kubectl -n "$namespace" logs "$(kubectl -n $namespace get pods -l app=circle-migrator -o name)" >"$path"/logs/circle-migrator.log
         echo "Pod log is available at $path/logs/circle-migrator.log"
         echo "Removing job/circle-migrator -"
         kubectl delete job/circle-migrator --namespace "$namespace"
@@ -321,20 +305,20 @@ execute_flyway_migration(){
     fi
 }
 
-rm_kots_annot_label_resources(){
+rm_kots_annot_label_resources() {
     echo ""
     echo "############ REMOVING KOTS ANNOTATIONS, LABELS & RESOURCES ############"
 
-    for resource in "${resourceList[@]}";do
-        echo "" | tee -a  "$path/logs/$kotsCleanupLogFile"
+    for resource in "${resourceList[@]}"; do
+        echo "" | tee -a "$path/logs/$kotsCleanupLogFile"
         echo "Removing kots related annotations/labels on all $resource resources..."
         {
-        kubectl -n $namespace annotate "$resource" --all kots.io/app-slug-
-        kubectl -n $namespace label "$resource" --all kots.io/app-slug- kots.io/backup-
-        } >> "$path/logs/$kotsCleanupLogFile"
+            kubectl -n $namespace annotate "$resource" --all kots.io/app-slug-
+            kubectl -n $namespace label "$resource" --all kots.io/app-slug- kots.io/backup-
+        } >>"$path/logs/$kotsCleanupLogFile"
 
         echo "Removing k8s $resource resources if kots.io/kotsadm=true..."
-        kubectl -n $namespace delete "$resource"  -l "kots.io/kotsadm=true" | tee -a "$path/logs/$kotsCleanupLogFile"
+        kubectl -n $namespace delete "$resource" -l "kots.io/kotsadm=true" | tee -a "$path/logs/$kotsCleanupLogFile"
     done
 
     echo ""
@@ -352,19 +336,19 @@ rm_kots_annot_label_resources(){
     fi
 }
 
-postgres_migration(){
+postgres_migration() {
     if "$POSTGRES_INTERNAL"; then
-    echo ""
-    echo "############ PREPARING POSTGRES FOR MIGRATION ############"
-    echo "Upgrading to server CircleCI server 4.0 includes upgrading the Postgres chart"
-    echo "Before upgrading, we need to prepare your postgres instance."
+        echo ""
+        echo "############ PREPARING POSTGRES FOR MIGRATION ############"
+        echo "Upgrading to server CircleCI server 4.0 includes upgrading the Postgres chart"
+        echo "Before upgrading, we need to prepare your postgres instance."
 
-    kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan
-    kubectl delete secret postgresql --namespace $namespace
+        kubectl delete statefulsets.apps postgresql --namespace $namespace --cascade=orphan
+        kubectl delete secret postgresql --namespace $namespace
     fi
 }
 
-output_message(){
+output_message() {
     echo ""
     echo "############ HELM COMMANDS ################"
     echo "Before upgrading to 4.0, follow below steps:"
@@ -395,18 +379,18 @@ output_message(){
     echo "It should be - $domainName:4647"
 }
 
-function gen_password(){
-    env LC_ALL=C tr -dc 'A-Za-z0-9_' < /dev/urandom | head -c "$1"
+function gen_password() {
+    env LC_ALL=C tr -dc 'A-Za-z0-9_' </dev/urandom | head -c "$1"
 }
 
-error_exit(){
-  msg="$*"
+error_exit() {
+    msg="$*"
 
-  if [ -n "$msg" ] || [ "$msg" != "" ]; then
-    echo "------->> Error: $msg"
-  fi
+    if [ -n "$msg" ] || [ "$msg" != "" ]; then
+        echo "------->> Error: $msg"
+    fi
 
-  kill $$
+    kill $$
 }
 
 log_setup() {
@@ -424,24 +408,38 @@ log_setup
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -n|--namespace)
-            namespace="$2";
-            shift ;;
-        -r|--annotate)
-            annotate="$2";
-            shift ;;
-        -l|--license)
-            license="$2";
-            shift ;;
-        -f|--func)
-            func="$2";
-            shift ;;
-        -d|--dev)
-            dev=true;;
-        -h|--help)
-            help_init_options;
-            exit 0 ;;
-        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    -n | --namespace)
+        namespace="$2"
+        shift
+        ;;
+    -r | --annotate)
+        annotate="$2"
+        shift
+        ;;
+    -l | --license)
+        license="$2"
+        shift
+        ;;
+    -f | --func)
+        func="$2"
+        shift
+        ;;
+    -d | --dev)
+        dev=true
+        ;;
+    -v | --verbose)
+        alias helm='helm --debug'
+        alias kubectl='kubectl -v=8'
+        echo "Verbose: enabled"
+        ;;
+    -h | --help)
+        help_init_options
+        exit 0
+        ;;
+    *)
+        echo "Unknown parameter passed: $1"
+        exit 1
+        ;;
     esac
     shift
 done
