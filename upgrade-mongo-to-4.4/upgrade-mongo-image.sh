@@ -66,7 +66,7 @@ function patch_mongo_image() {
 		exit 1
 	fi
   
-  result=$(kubectl patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"docker.io/bitnami/mongodb:${1}\"}]}}}}")
+  result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"docker.io/bitnami/mongodb:${1}\"}]}}}}")
   
   #Check if patch ran successfully
   if [[ $result == *"statefulset.apps/mongodb patched"* ]]; 
@@ -88,7 +88,7 @@ function set_compatibility_version() {
 		exit 1
 	fi
 
-  result=$(kubectl exec "$MONGO_POD" -- mongo -u "$MONGODB_USERNAME" -p "$MONGODB_PASSWORD" --eval "db.adminCommand({ setFeatureCompatibilityVersion: '$1' })")
+  result=$(kubectl -n "$NAMESPACE" exec "$MONGO_POD" -- mongo -u "$MONGODB_USERNAME" -p "$MONGODB_PASSWORD" --eval "db.adminCommand({ setFeatureCompatibilityVersion: '$1' })")
 
   if [[ $result == *"{ \"ok\" : 1 }"* ]]; 
   then
