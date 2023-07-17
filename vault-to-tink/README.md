@@ -6,6 +6,7 @@
 1. The kubectl context needs to be in the correct namespace (`kubectl config set-context --current --namespace <namespace>`)
 1. Docker is running and accessible without `sudo` to run the `clojure` container
 1. `jq` is installed.
+1. The API token from your Kubernetes secret is accessible to be used for the import.
 1. The Postgres server is internal to the CircleCI installation
 
    - If Postgres has been externalized, please reach out to your account representative.
