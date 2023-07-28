@@ -12,7 +12,7 @@
    - If Postgres has been externalized, please reach out to your account representative.
 
 1. You have a [Tink keyset](https://developers.google.com/tink/install-tinkey) ready to go with `tinkey create-keyset --key-template XCHACHA20_POLY1305`
-   - For a successful run of above command, JAVA must be installed on the machine, If Mac, use `brew install openjdk`
+   - To successfully run the aforementioned command, Java must be installed. On a Mac you may `brew install openjdk`.
 
 1. If on a Mac, please `brew install iproute2mac`
 
