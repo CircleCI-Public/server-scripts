@@ -1,0 +1,22 @@
+# Learn more about these files at:
+# https://circleci.atlassian.net/l/cp/zvCUepEC
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: server-script
+  description: This is a collection of tools made publicly available to all CircleCI Server customers
+  annotations:
+    circleci.com/project-slug: github/CircleCI-Public/server-scripts
+    jira/project-key: ONPREM
+    pagerduty.com/service-id: PM7SMHG
+  links:
+    - title: Documentation
+      url: https://github.com/CircleCI-Public/server-scripts/blob/main/README.md
+      icon: docs
+  tags:
+    - server
+spec:
+  type: tool
+  lifecycle: production
+  owner: on-prem
