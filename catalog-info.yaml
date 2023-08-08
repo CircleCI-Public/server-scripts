@@ -8,7 +8,7 @@ metadata:
   description: This is a collection of tools made publicly available to all CircleCI Server customers
   annotations:
     circleci.com/project-slug: github/CircleCI-Public/server-scripts
-    jira/project-key: ON-PREM
+    jira/project-key: ONPREM
     pagerduty.com/service-id: PM7SMHG
   links:
     - title: Documentation
