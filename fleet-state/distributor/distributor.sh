@@ -1,8 +1,9 @@
 #!/bin/bash
 
 NAMESPACE=$1
-DISTRIBUTE_POD=$(kubectl -n $NAMESPACE get pods | grep distributor-dispatcher | tail -1 | awk '{print $1}')
-EXEC="kubectl -n ${NAMESPACE} exec ${DISTRIBUTE_POD} -c distributor --"
+FRONTEND_POD=$(kubectl -n ${NAMESPACE} get pod -lapp=frontend -o name)
+EXEC="kubectl -n ${NAMESPACE} exec ${FRONTEND_POD} -c frontend --"
 
-${EXEC} apk add curl
-${EXEC} curl 127.0.0.1:7623/tasks?executor=machine,mac,windows | jq '.[] | { "Count": .count, "Type": .resource_class.executor, "Size": .resource_class.class, "Image": .resource_class.image } '
+echo ""
+echo "Fetching Job Counts - "
+${EXEC} curl -s http://distributor-internal:80/tasks?executor=machine,mac,windows,linux,arm,android | jq #'.[] | { "Count": .count, "Type": .resource_class.executor, "Size": .resource_class.class, "Image": .resource_class.image } '

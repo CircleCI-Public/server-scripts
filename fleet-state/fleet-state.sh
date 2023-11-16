@@ -16,6 +16,5 @@ then
     exit $?
 fi
 
-${DIR}/nomad/nomad.sh $NAMESPACE
-${DIR}/vm-service/vms.sh $NAMESPACE
-# ${DIR}/distributor/distributor.sh $NAMESPACE
+#${DIR}/nomad/nomad.sh $NAMESPACE
+${DIR}/distributor/distributor.sh $NAMESPACE
