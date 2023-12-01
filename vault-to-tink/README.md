@@ -44,8 +44,8 @@ vault:
 ```
 
 ## Import
-
-1. Run `bash import-contexts.sh [--hostname <circleci-hostname>] [--token <circleci-token>]`
+1. Get your API token by running `API_TOKEN=$(kubectl get secrets api-token -o jsonpath="{.data.api-token}" -n <namespace> | base64 --decode)`
+1. Run the import script `bash import-contexts.sh [--hostname <circleci-hostname>] [--token $API_TOKEN]`
 
 ## Verification
 
