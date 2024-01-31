@@ -14,7 +14,7 @@
 2.  Run: `./exporter.sh -n <namespace>`
 
 ### Import data into 4.0
-1.  Set the Kubectl context to the CirlceCI 4.0 instance you are migrating **To**
+1.  Set the Kubectl context to the CircleCI 4.0 instance you are migrating **To**
 2.  Run: `./restore.sh <namespace>`
 3.  Update CircleCI 4.0 to point at the storage bucket from 3.4
 4.  Update Signing and Encryption keys they will be in `circleci_export/encryptkey` and `circleci_export/signkey`
