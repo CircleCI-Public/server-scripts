@@ -94,6 +94,10 @@ while read -r obj; do
     ((ORG_TOTAL=ORG_TOTAL+1))  # +1 total unique org counter
   fi
 
+  if [ "${org_id}" == "6ecee9e4-1c95-4e0d-8af3-5c57c35e84c8" ]; then
+    org_name="Account"
+  fi
+
   # if Org name is empty
   if [ -z "${org_name}" ] ; then
     if [ "${old_org_id}" != "${org_id}" ]; then
