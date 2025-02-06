@@ -119,7 +119,6 @@ while read -r obj; do
        ((EMPTY=EMPTY+1))
        continue
     fi
-    ctx=$(echo "${ctx}" | jq -c '.[]')
     # extract the name and value of the context
     name=$(echo "${ctx}" | jq -r '.["name"]')
     value=$(echo "${ctx}" | jq '.["value"]')
@@ -143,7 +142,7 @@ while read -r obj; do
     fi
     echo "context id: ${context_id} has imported (${HTTP_CODE}: ${RESPONSE})"
     ((SUCCESS=SUCCESS+1))
-  done < <(echo -n "${obj}" | jq -c '.["contexts"]')  # parsing contexts from each line object
+  done < <(echo -n "${obj}" | jq -c '.contexts[]')  # parsing contexts from each line object
 done < <(jq -c . "${INPUT_FILE}")  # reading input file
 
 # -------------------------- End: Processing Contexts ---------------------------------
