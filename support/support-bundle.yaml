@@ -68,6 +68,13 @@ spec:
       command: ["/bin/sh"]
       args: ["-c","df -h /bitnami/rabbitmq/mnesia"]
       timeout: 10s
+  - exec:
+      name: server-version
+      selector:
+        - app.kubernetes.io/name=rabbitmq
+      command: ["/bin/sh"]
+      args: ["-c","curl -k https://kong/version"]
+      timeout: 10s
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
