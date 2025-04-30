@@ -75,6 +75,15 @@ spec:
       command: ["/bin/sh"]
       args: ["-c","curl -k https://kong/version"]
       timeout: 10s
+  - exec:
+      name: server-version
+      selector:
+      #Needs to be changed to www-api in 5.0
+      #Can also change to https:// at a later date
+        - app=frontend
+      command: ["/bin/sh"]
+      args: ["-c", "curl -s \"http://circleci-proxy-acm.$K8S_POD_NAMESPACE.svc.cluster.local/version\" || curl -s \"http://circleci-proxy.$K8S_POD_NAMESPACE.svc.cluster.local/version\""]
+      timeout: 10s
   redactors:
   - name: Redact Object storage credentials
     fileSelector:
