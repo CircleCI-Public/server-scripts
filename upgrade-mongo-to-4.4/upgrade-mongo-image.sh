@@ -66,7 +66,7 @@ function patch_mongo_image() {
 		exit 1
 	fi
   
-  result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"docker.io/bitnami/mongodb:${1}\"}]}}}}")
+  result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"cciserver.azurecr.io/server-mongodb:${1}\"}]}}}}")
   
   #Check if patch ran successfully
   if [[ $result == *"statefulset.apps/mongodb patched"* ]]; 
