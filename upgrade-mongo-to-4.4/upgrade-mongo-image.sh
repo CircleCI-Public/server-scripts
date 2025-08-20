@@ -54,7 +54,7 @@ MONGODB_PASSWORD=$(kubectl -n "$NAMESPACE" get secrets mongodb -o jsonpath="{.da
 # List of Mongo image versions
 declare -a mongo_images=(
   "4.0.27-debian-9-r118"
-  "4.2.17-debian-10-r99"
+  "4.2.21-debian-10-r8"
   "4.4.15-debian-10-r8"
 )
 
