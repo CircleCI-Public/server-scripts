@@ -39,7 +39,7 @@ init_options() {
     fi
 }
 
-init_options $ARGS
+init_options "$ARGS"
 
 MONGO_POD="mongodb-0"
 MONGODB_USERNAME="root"
@@ -148,9 +148,7 @@ do
   patch_mongo_image "$i" "$major_version"
   
   echo "Waiting for mongo pod to restart..."
-  kubectl -n "$NAMESPACE" rollout status statefulset/mongodb --timeout=300s
-  
-  if [ $? -ne 0 ]; then
+  if ! kubectl -n "$NAMESPACE" rollout status statefulset/mongodb --timeout=300s; then
     echo "Error: MongoDB pod failed to restart properly"
     exit 1
   fi
