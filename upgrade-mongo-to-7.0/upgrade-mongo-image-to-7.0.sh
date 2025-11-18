@@ -39,7 +39,7 @@ init_options() {
     fi
 }
 
-init_options "$ARGS"
+init_options $ARGS
 
 MONGO_POD="mongodb-0"
 MONGODB_USERNAME="root"
