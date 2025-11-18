@@ -39,6 +39,7 @@ init_options() {
     fi
 }
 
+# shellcheck disable=SC2086
 init_options $ARGS
 
 MONGO_POD="mongodb-0"
