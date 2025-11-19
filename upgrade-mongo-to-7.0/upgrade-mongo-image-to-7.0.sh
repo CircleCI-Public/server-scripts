@@ -118,7 +118,7 @@ function set_compatibility_version() {
   echo "Using $shell_cmd to set compatibility version..."
   
   if [ "$major_version" -ge 7 ]; then
-    echo "Note: MongoDB 7.0+ upgrade is one-way and cannot be downgraded without support assistance"
+    echo "Note: MongoDB 7.0+ upgrade is one-way and cannot be downgraded.
     result=$(kubectl -n "$NAMESPACE" exec "$MONGO_POD" -- $shell_cmd -u "$MONGODB_USERNAME" -p "$MONGODB_PASSWORD" --eval "db.adminCommand({ setFeatureCompatibilityVersion: '$1', confirm: true })")
   else
     result=$(kubectl -n "$NAMESPACE" exec "$MONGO_POD" -- $shell_cmd -u "$MONGODB_USERNAME" -p "$MONGODB_PASSWORD" --eval "db.adminCommand({ setFeatureCompatibilityVersion: '$1' })")
