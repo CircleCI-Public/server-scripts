@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-if ! command -v yq >/dev/null 2>&1; then
-  echo "Error: yq is required: https://mikefarah.gitbook.io/yq#install" >&2
+if ! command -v yq >/dev/null || ! yq --version | grep -q 'v4.' 2>&1; then
+  echo "Error: yq 4.x is required: https://mikefarah.gitbook.io/yq#install" >&2
+  yq --version
   exit 1
 fi
 
@@ -15,12 +16,12 @@ trap 'rm -f "$TMP_VALUES" "$TMP_IMAGES"' EXIT
 
 # Enable all components to ensure everything renders and we find all images
 yq '
-  (.. | objects | select(has("enabled")).enabled) = true
-  | (.. | objects | select(has("isEnabled")).isEnabled) = true
+  (.. | select(has("enabled")).enabled) = true
+  | (.. | select(has("isEnabled")).isEnabled) = true
 ' "$CHART_PATH/values.yaml" > "$TMP_VALUES"
 
 # Set required values so templating won't fail
-yq -yi '
+yq -i '
   .oidc_service.json_web_keys = "dummy"
 ' "$TMP_VALUES"
 
@@ -29,8 +30,8 @@ yq -yi '
 helm template "$CHART_PATH" \
   --values "$TMP_VALUES" \
   --skip-schema-validation \
-  --debug 2>/dev/null \
-  | yq -r '..|.image? | select(.)' \
+  --debug \
+  | yq e '..|.image? | select(.)' - \
   > "$TMP_IMAGES"
 
 # Extract picard (build-agent) image from images.yaml as this image is not used directly in a deployment,
