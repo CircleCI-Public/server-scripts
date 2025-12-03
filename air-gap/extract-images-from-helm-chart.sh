@@ -30,8 +30,7 @@ yq -i '
 helm template "$CHART_PATH" \
   --values "$TMP_VALUES" \
   --skip-schema-validation \
-  --debug \
-  | yq e '..|.image? | select(.)' - \
+  | yq -N e '..|.image? | select(.)' - \
   > "$TMP_IMAGES"
 
 # Extract picard (build-agent) image from images.yaml as this image is not used directly in a deployment,
