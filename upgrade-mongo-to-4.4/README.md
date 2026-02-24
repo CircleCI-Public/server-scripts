@@ -13,5 +13,7 @@ This script is to be used when [upgrading the MongoDB image](https://circleci.co
 mongodb:
   ...
   image:
+    registry: cciserver.azurecr.io
+    repository: server-mongodb
     tag: 4.4.15-debian-10-r8
 ```
