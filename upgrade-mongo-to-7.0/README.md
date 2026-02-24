@@ -15,10 +15,9 @@ You **must complete** the [4.4 upgrade](https://github.com/CircleCI-Public/serve
 mongodb:
   ...
   image:
-    registry: dockerregistry.logangodsey.com
-    repository: mongodb
+    registry: cciserver.azurecr.io
+    repository: server-mongodb
     tag: 7.0.15-debian-12-r2
-    pullSecrets: []
   livenessProbe:
     enabled: false
   readinessProbe:
