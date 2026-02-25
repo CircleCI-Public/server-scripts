@@ -122,5 +122,7 @@ echo ""
 echo "mongodb:
   ...
   image:
+    registry: cciserver.azurecr.io
+    repository: server-mongodb
     tag: 4.4.15-debian-10-r8"
 echo ""
