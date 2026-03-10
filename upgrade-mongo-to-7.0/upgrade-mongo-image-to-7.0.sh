@@ -1,9 +1,11 @@
 #!/bin/bash
 ARGS="${*:1}"
 NAMESPACE="circleci-server"
+REGISTRY="cciserver.azurecr.io"
 
 help_init_options() {
     echo "  -n|--namespace       Namespace where your Server is installed. Defaults to 'circleci-server'"
+    echo "  -r|--registry        Image registry to pull MongoDB images from. Defaults to 'cciserver.azurecr.io'"
     echo "  -h|--help            Print help text"
 }
 
@@ -14,9 +16,14 @@ init_options() {
     key="${1}"
     case $key in
         -n|--namespace)
-            shift 
+            shift
             NAMESPACE=$1
-            shift 
+            shift
+        ;;
+        -r|--registry)
+            shift
+            REGISTRY=$1
+            shift
         ;;
         -h|--help)
             help_init_options
@@ -27,7 +34,7 @@ init_options() {
             then
                 POSITIONAL+=("${1}")
             fi
-            shift 
+            shift
         ;;
     esac
     done
@@ -74,7 +81,7 @@ function patch_mongo_image() {
       {
         "op": "replace",
         "path": "/spec/template/spec/containers/0/image",
-        "value": "cciserver.azurecr.io/server-mongodb:'"$image_tag"'"
+        "value": "'"${REGISTRY}"'/server-mongodb:'"${image_tag}"'"
       },
       {
         "op": "replace",
@@ -88,7 +95,7 @@ function patch_mongo_image() {
       }
     ]')
   else
-    result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"cciserver.azurecr.io/server-mongodb:${image_tag}\"}]}}}}")
+    result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"${REGISTRY}/server-mongodb:${image_tag}\"}]}}}}")
   fi
   
   if [[ $result == *"statefulset.apps/mongodb patched"* ]]; 
@@ -170,7 +177,7 @@ echo "Include the following in the mongodb block of your values.yaml.:"
 echo ""
 echo "mongodb:"
 echo "  image:"
-echo "    registry: cciserver.azurecr.io"
+echo "    registry: $REGISTRY"
 echo "    repository: server-mongodb"
 echo "    tag: 7.0.15-debian-12-r2"
 echo "  livenessProbe:"
