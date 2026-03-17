@@ -2,6 +2,7 @@
 ARGS="${*:1}"
 NAMESPACE="circleci-server"
 REGISTRY="cciserver.azurecr.io"
+STARTING_IMAGE="4.4.15-debian-10-r8"
 
 help_init_options() {
     echo "  -n|--namespace       Namespace where your Server is installed. Defaults to 'circleci-server'"
@@ -53,11 +54,25 @@ MONGO_POD="mongodb-0"
 MONGODB_USERNAME="root"
 MONGODB_PASSWORD=$(kubectl -n "$NAMESPACE" get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
 
-declare -a mongo_images=(
-  "5.0.24-debian-11-r20"
-  "6.0.13-debian-11-r21"
-  "7.0.15-debian-12-r2"
-)
+current_mongo_version=$(kubectl get pod mongodb-0 -n "$NAMESPACE" -o jsonpath='{.spec.containers[*].image}' | cut -d: -f2)
+
+major_minor_version=$(echo "$current_mongo_version" | cut -d. -f1-2)
+
+case "$major_minor_version" in
+  4.4|5.*)
+    mongo_images=("5.0.24-debian-11-r20" "6.0.13-debian-11-r21" "7.0.15-debian-12-r2")
+    ;;
+  6.*)
+    mongo_images=("6.0.13-debian-11-r21" "7.0.15-debian-12-r2")
+    ;;
+  7.*)
+    mongo_images=("7.0.15-debian-12-r2")
+    ;;
+  *)
+    echo "mongoDB version is $major_minor_version. Please upgrade to 4.4 before running this script."
+    exit 1
+    ;;
+esac
 
 function patch_mongo_image() {
   if [ -z "$1" ];
