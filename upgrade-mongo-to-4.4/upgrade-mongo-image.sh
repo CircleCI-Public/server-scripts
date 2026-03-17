@@ -3,10 +3,12 @@
 # Declare variables
 ARGS="${*:1}"
 NAMESPACE="circleci-server"
+REGISTRY="cciserver.azurecr.io"
 
 # Help message for Init menu
 help_init_options() {
     echo "  -n|--namespace       Namespace where your Server is installed. Defaults to 'circleci-server'"
+    echo "  -r|--registry        Image registry to pull MongoDB images from. Defaults to 'cciserver.azurecr.io'"
     echo "  -h|--help            Print help text"
 }
 
@@ -21,6 +23,11 @@ init_options() {
             shift # need the next arg
             NAMESPACE=$1
             shift # past argument
+        ;;
+        -r|--registry)
+            shift
+            REGISTRY=$1
+            shift
         ;;
         -h|--help)
             help_init_options
@@ -66,7 +73,7 @@ function patch_mongo_image() {
 		exit 1
 	fi
   
-  result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"cciserver.azurecr.io/server-mongodb:${1}\"}]}}}}")
+  result=$(kubectl -n "$NAMESPACE" patch statefulset mongodb --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"mongodb\",\"image\": \"$REGISTRY/server-mongodb:${1}\"}]}}}}")
   
   #Check if patch ran successfully
   if [[ $result == *"statefulset.apps/mongodb patched"* ]]; 
@@ -122,7 +129,7 @@ echo ""
 echo "mongodb:
   ...
   image:
-    registry: cciserver.azurecr.io
+    registry: $REGISTRY
     repository: server-mongodb
     tag: 4.4.15-debian-10-r8"
 echo ""
