@@ -176,8 +176,18 @@ do
     exit 1
   fi
   
-  echo "Pod restarted successfully. Setting compatibility version..."
-  set_compatibility_version "$mongo_version"
+  echo "Pod restarted successfully. Waiting for containers to be ready."
+
+  # Check if pod is ready
+  ready_status=$(kubectl wait pod "$MONGO_POD" -n "$NAMESPACE" --for=condition=Ready --timeout=120s)
+  if [[ $ready_status == "pod/mongodb-0 condition met" ]]
+  then
+    echo "Setting compatibility version"
+    set_compatibility_version "$mongo_version"
+  else
+    echo "Error: Timed out waiting for mongodb to become ready. Please inspect your mongoDB pod"
+    exit 1
+  fi
   
   echo "MongoDB $mongo_version upgrade complete!"
 done
