@@ -2,7 +2,6 @@
 ARGS="${*:1}"
 NAMESPACE="circleci-server"
 REGISTRY="cciserver.azurecr.io"
-STARTING_IMAGE="4.4.15-debian-10-r8"
 
 help_init_options() {
     echo "  -n|--namespace       Namespace where your Server is installed. Defaults to 'circleci-server'"
