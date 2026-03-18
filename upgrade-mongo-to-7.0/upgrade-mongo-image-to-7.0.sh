@@ -53,11 +53,25 @@ MONGO_POD="mongodb-0"
 MONGODB_USERNAME="root"
 MONGODB_PASSWORD=$(kubectl -n "$NAMESPACE" get secrets mongodb -o jsonpath="{.data.mongodb-root-password}" | base64 --decode)
 
-declare -a mongo_images=(
-  "5.0.24-debian-11-r20"
-  "6.0.13-debian-11-r21"
-  "7.0.15-debian-12-r2"
-)
+current_mongo_version=$(kubectl get pod mongodb-0 -n "$NAMESPACE" -o jsonpath='{.spec.containers[*].image}' | cut -d: -f2)
+
+major_minor_version=$(echo "$current_mongo_version" | cut -d. -f1-2)
+
+case "$major_minor_version" in
+  4.4|5.*)
+    mongo_images=("5.0.24-debian-11-r20" "6.0.13-debian-11-r21" "7.0.15-debian-12-r2")
+    ;;
+  6.*)
+    mongo_images=("6.0.13-debian-11-r21" "7.0.15-debian-12-r2")
+    ;;
+  7.*)
+    mongo_images=("7.0.15-debian-12-r2")
+    ;;
+  *)
+    echo "mongoDB version is $major_minor_version. Please upgrade to 4.4 before running this script."
+    exit 1
+    ;;
+esac
 
 function patch_mongo_image() {
   if [ -z "$1" ];
@@ -161,8 +175,18 @@ do
     exit 1
   fi
   
-  echo "Pod restarted successfully. Setting compatibility version..."
-  set_compatibility_version "$mongo_version"
+  echo "Pod restarted successfully. Waiting for containers to be ready."
+
+  # Check if pod is ready
+  ready_status=$(kubectl wait pod "$MONGO_POD" -n "$NAMESPACE" --for=condition=Ready --timeout=120s)
+  if [[ $ready_status == "pod/mongodb-0 condition met" ]]
+  then
+    echo "Setting compatibility version"
+    set_compatibility_version "$mongo_version"
+  else
+    echo "Error: Timed out waiting for mongodb to become ready. Please inspect your mongoDB pod"
+    exit 1
+  fi
   
   echo "MongoDB $mongo_version upgrade complete!"
 done
