@@ -96,6 +96,10 @@ spec:
         redactor: '("value": ")(?P<mask>.*)(")'
       - selector: __SECRET_KEY
         redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: AWS_ACCESS_KEY_ID
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: AWS_SECRET_ACCESS_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
 
   - name: Redact ring session encryption key
     fileSelector:
@@ -140,6 +144,92 @@ spec:
       regex:
       - selector: KEYSET__
         redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __KEYSET
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: JSON_WEB_KEYS
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact database passwords
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: PGPASSWORD
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: _PASSWORD
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __PASSWORD
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: SMTP__PASS
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact API and service tokens
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: _TOKEN
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __TOKEN
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact encryption keys, passphrases, and salts
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: ENCRYPTION_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: ENCRYPT_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: PASSPHRASE
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: _SALT
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: SALTS__
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact Pusher/soketi app keys
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: DEFAULT_APP_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: PUSHER_APP_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: PUSHER__KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact third-party API keys and TLS private keys
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: SEGMENT_API_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: API_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: SSL_CERT_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact Authorization and cookie headers in logs
+    removals:
+      regex:
+      - redactor: '(?i)(Authorization"?\s*[:=]\s*"?)(?P<mask>(Bearer\s+|Basic\s+)?[A-Za-z0-9._\-+/=]+)'
+      - redactor: '(?i)(X-Api-Token"?\s*[:=]\s*"?)(?P<mask>[A-Za-z0-9._\-+/=]+)'
+      - redactor: '(?i)(Circle-Token"?\s*[:=]\s*"?)(?P<mask>[A-Za-z0-9._\-+/=]+)'
+      - redactor: '(?i)((Set-)?Cookie"?\s*[:=]\s*"?)(?P<mask>[^"\r\n]+)'
 
   # Removes passwords from URI's of the form <scheme>://<user>:<password>@<host>:<port>
   - name: Redact passwords from URIs
@@ -170,4 +260,13 @@ spec:
     removals:
       regex:
       - redactor: '("kubectl\.kubernetes\.io/last-applied-configuration": ")(?P<mask>.+)(")'
+
+  # Mask <local>@<label1>.<label2> only. For plain 2-level emails this masks the
+  # whole address. For SSH remotes (git@github.example.net) and service hostnames
+  # (rabbit@rabbitmq-0.rabbitmq-headless.svc.cluster.local) the additional labels
+  # past the first two stay visible for debugging.
+  - name: Redact customer employee email addresses in logs
+    removals:
+      regex:
+      - redactor: '(?P<mask>[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+\.[A-Za-z0-9\-]+)'
   analyzers: []
