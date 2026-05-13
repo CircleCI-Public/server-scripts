@@ -338,7 +338,7 @@ if $POSTGRES_NEEDS_SCALE && ! $DRY_RUN; then
   PV_FOR_SCALE=$(kubectl -n "$NAMESPACE" get pvc "$PVC_NAME" \
     -o jsonpath='{.spec.volumeName}')
   VA_FOR_SCALE=$(kubectl get volumeattachment \
-    -o jsonpath='{range .items[?(@.spec.source.persistentVolumeName=="'$PV_FOR_SCALE'")]}{.metadata.name}{end}' \
+    -o jsonpath='{range .items[?(@.spec.source.persistentVolumeName=="'"$PV_FOR_SCALE"'")]}{.metadata.name}{end}' \
     2>/dev/null || true)
   if [[ -n "$VA_FOR_SCALE" ]]; then
     kubectl wait --for=delete "volumeattachment/$VA_FOR_SCALE" --timeout=3m
