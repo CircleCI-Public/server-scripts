@@ -50,7 +50,7 @@ DRY_RUN=false
 # ============================================================================
 # Helpers
 # ============================================================================
-if [ -t 1 ]; then
+if [ -t 2 ]; then
   C_RED='\033[1;31m'; C_YEL='\033[1;33m'; C_CYA='\033[1;36m'; C_GRN='\033[1;32m'; C_OFF='\033[0m'
 else
   C_RED=''; C_YEL=''; C_CYA=''; C_GRN=''; C_OFF=''
@@ -62,13 +62,21 @@ warn() { printf "${C_YEL}[%s] WARN:${C_OFF} %s\n" "$SCRIPT_NAME" "$*" >&2; }
 err()  { printf "${C_RED}[%s] ERROR:${C_OFF} %s\n" "$SCRIPT_NAME" "$*" >&2; }
 die()  { err "$@"; exit 1; }
 
+validate() {
+  local label="$1" value="$2" regex="$3"
+  [[ "$value" =~ $regex ]] || die "Invalid $label value '$value' (must match $regex)"
+}
+
 confirm() {
   $ASSUME_YES && return 0
   local prompt="$1"
   local reply
   read -r -p "$prompt [y/N] " reply
-  [[ "$reply" =~ ^[Yy]$ ]]
+  [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]]
 }
+
+command -v kubectl >/dev/null 2>&1 \
+  || die "kubectl is required and must be in PATH"
 
 # ============================================================================
 # Usage
@@ -143,6 +151,18 @@ done
 [[ -z "$NAMESPACE" ]] && { usage; die "--namespace is required"; }
 [[ -z "$PG14_TAG"  ]] && die "--pg14-tag is empty (internal default was cleared?)"
 
+# Validate user-supplied values before they reach kubectl invocations or the
+# rendered YAML. Auto-discovered values come from kubectl/psql output and are
+# trusted (k8s enforces DNS-1123 names; postgres uses C identifiers for
+# encoding/locale names).
+validate "--namespace"  "$NAMESPACE"  '^[a-z0-9][a-z0-9.-]*$'
+validate "--secret-key" "$SECRET_KEY" '^[A-Za-z0-9._-]+$'
+[[ -n "$PVC_NAME"          ]] && validate "--pvc-name"          "$PVC_NAME"          '^[a-z0-9][a-z0-9.-]*$'
+[[ -n "$SECRET_NAME"       ]] && validate "--secret-name"       "$SECRET_NAME"       '^[a-z0-9][a-z0-9.-]*$'
+[[ -n "$INITDB_ENCODING"   ]] && validate "--initdb-encoding"   "$INITDB_ENCODING"   '^[A-Za-z0-9._@-]+$'
+[[ -n "$INITDB_LC_COLLATE" ]] && validate "--initdb-lc-collate" "$INITDB_LC_COLLATE" '^[A-Za-z0-9._@-]+$'
+[[ -n "$INITDB_LC_CTYPE"   ]] && validate "--initdb-lc-ctype"   "$INITDB_LC_CTYPE"   '^[A-Za-z0-9._@-]+$'
+
 # ============================================================================
 # Resolve image source
 # ============================================================================
@@ -215,17 +235,23 @@ discover_locale() {
 log "Discovering defaults from namespace '$NAMESPACE'..."
 
 if [[ -z "$PVC_NAME" ]]; then
-  PVC_NAME=$(discover_single pvc 'app.kubernetes.io/name=postgresql') \
-    || die "Could not auto-discover PVC; pass --pvc-name"
-  log "  PVC:    $PVC_NAME (discovered)"
+  rc=0; PVC_NAME=$(discover_single pvc 'app.kubernetes.io/name=postgresql') || rc=$?
+  case "$rc" in
+    0) log "  PVC:    $PVC_NAME (discovered)" ;;
+    1) die "Could not auto-discover PVC; pass --pvc-name" ;;
+    *) exit 1 ;;
+  esac
 else
   log "  PVC:    $PVC_NAME"
 fi
 
 if [[ -z "$SECRET_NAME" ]]; then
-  SECRET_NAME=$(discover_single secret 'app.kubernetes.io/name=postgresql') \
-    || die "Could not auto-discover secret; pass --secret-name"
-  log "  Secret: $SECRET_NAME (discovered)"
+  rc=0; SECRET_NAME=$(discover_single secret 'app.kubernetes.io/name=postgresql') || rc=$?
+  case "$rc" in
+    0) log "  Secret: $SECRET_NAME (discovered)" ;;
+    1) die "Could not auto-discover secret; pass --secret-name" ;;
+    *) exit 1 ;;
+  esac
 else
   log "  Secret: $SECRET_NAME"
 fi
@@ -248,6 +274,22 @@ log "  kubectl context: $CURRENT_CTX"
 kubectl get ns "$NAMESPACE" >/dev/null 2>&1 \
   || die "Namespace '$NAMESPACE' does not exist in context '$CURRENT_CTX'"
 
+# Pod Security Admission: a namespace enforcing `restricted` will reject the
+# Job because it needs to run as root (UID 0) to bridge the upgrade image's
+# UID 999 and the chart's UID 1001 via chown.
+PSS_ENFORCE=$(kubectl get ns "$NAMESPACE" \
+  -o jsonpath='{.metadata.labels.pod-security\.kubernetes\.io/enforce}' 2>/dev/null)
+if [[ "$PSS_ENFORCE" == "restricted" ]]; then
+  err "Namespace '$NAMESPACE' enforces Pod Security 'restricted' admission."
+  err "The pg_upgrade Job needs to run as root (UID 0) for a chown step that"
+  err "bridges the upgrade image's UID 999 and the chart's UID 1001."
+  err "Remediation: temporarily relax the label before re-running, e.g.:"
+  err "  kubectl label ns $NAMESPACE pod-security.kubernetes.io/enforce=baseline --overwrite"
+  err "Restore the original label after the upgrade completes."
+  die "Pod Security 'restricted' enforcement blocks this Job"
+fi
+log "  Pod Security enforce label: ${PSS_ENFORCE:-<unset>}"
+
 kubectl -n "$NAMESPACE" get pvc "$PVC_NAME" >/dev/null 2>&1 \
   || die "PVC '$PVC_NAME' not found in namespace '$NAMESPACE'"
 
@@ -258,24 +300,33 @@ SECRET_HAS_KEY=$(kubectl -n "$NAMESPACE" get secret "$SECRET_NAME" \
   -o jsonpath="{.data.$SECRET_KEY}" 2>/dev/null)
 [[ -z "$SECRET_HAS_KEY" ]] && die "Secret '$SECRET_NAME' has no key '$SECRET_KEY'"
 
+kubectl -n "$NAMESPACE" get sts postgresql >/dev/null 2>&1 \
+  || die "StatefulSet 'postgresql' not found in namespace '$NAMESPACE' (this script targets the standard CircleCI Server install)"
+
 # Application layer must already be scaled to 0 — they hold the postgres
 # connections that would block shutdown. The script leaves their quiesce to
-# the operator, but verifies it before doing anything else.
-APP_RUNNING=$(kubectl -n "$NAMESPACE" get deploy -l layer=application \
+# the operator, but verifies it before doing anything else. Checks both
+# Deployments and StatefulSets (some app-layer workloads are STS).
+APP_DEPLOY_RUNNING=$(kubectl -n "$NAMESPACE" get deploy -l layer=application \
   -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.name}({.spec.replicas}) {end}' \
   2>/dev/null)
+APP_STS_RUNNING=$(kubectl -n "$NAMESPACE" get sts -l layer=application \
+  -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.name}({.spec.replicas}) {end}' \
+  2>/dev/null)
+APP_RUNNING=$(echo "$APP_DEPLOY_RUNNING $APP_STS_RUNNING" | tr -s ' ' | sed 's/^ //;s/ $//')
 if [[ -n "$APP_RUNNING" ]]; then
   if $DRY_RUN; then
-    log "  application deployments: still running ($APP_RUNNING) (would need to be 0 for a real run; dry-run continues)"
+    log "  application workloads: still running ($APP_RUNNING) (would need to be 0 for a real run; dry-run continues)"
   else
-    err "Application deployments (layer=application) are still running:"
+    err "Application workloads (layer=application) are still running:"
     err "  $APP_RUNNING"
     err "Scale them down first:"
     err "  kubectl -n $NAMESPACE scale deploy -l layer=application --replicas=0"
+    err "  kubectl -n $NAMESPACE scale sts -l layer=application --replicas=0"
     die "Application layer must be at replicas=0 before running this script"
   fi
 else
-  log "  application deployments (layer=application): all at replicas=0 (good)"
+  log "  application workloads (layer=application): all at replicas=0 (good)"
 fi
 
 # Postgres StatefulSet state determines what happens next:
@@ -312,7 +363,9 @@ else
   fi
 fi
 
-# Existing Job? — only relevant when we're actually going to apply
+# Existing Job? — only relevant when we're actually going to apply. This is
+# a surprise (operator didn't expect a leftover), so it gets its own confirm
+# separate from the consolidated "planned actions" prompt below.
 if ! $DRY_RUN; then
   if kubectl -n "$NAMESPACE" get job "$JOB_NAME" >/dev/null 2>&1; then
     warn "Job '$JOB_NAME' already exists in '$NAMESPACE'."
@@ -323,13 +376,29 @@ if ! $DRY_RUN; then
 fi
 
 # ============================================================================
+# Consolidated confirmation — one prompt covers every planned action below
+# ============================================================================
+if ! $DRY_RUN; then
+  log ""
+  log "═══════════════════════════════════════════════════════════════════"
+  log "Planned actions (no further prompts after this one):"
+  if $POSTGRES_NEEDS_SCALE; then
+    log "  • Scale StatefulSet 'postgresql' to 0 (takes the database offline)"
+    log "  • Wait for the underlying volume to detach"
+  fi
+  log "  • Apply pg_upgrade Job '$JOB_NAME' against PVC '$PVC_NAME'"
+  log "  • Stream Job logs and wait for completion"
+  log "═══════════════════════════════════════════════════════════════════"
+  log ""
+  confirm "Proceed with all of the above?" || die "Aborted"
+fi
+
+# ============================================================================
 # Scale postgres to 0 if needed
 # ============================================================================
 if $POSTGRES_NEEDS_SCALE && ! $DRY_RUN; then
   log ""
   log "Scaling postgres StatefulSet to 0..."
-  confirm "Proceed with scaling postgres down? This takes the database offline." \
-    || die "Aborted"
   kubectl -n "$NAMESPACE" scale sts postgresql --replicas=0
   log "  waiting for postgresql-0 pod to terminate..."
   kubectl -n "$NAMESPACE" wait --for=delete pod/postgresql-0 --timeout=5m
@@ -341,7 +410,7 @@ if $POSTGRES_NEEDS_SCALE && ! $DRY_RUN; then
     -o jsonpath='{range .items[?(@.spec.source.persistentVolumeName=="'"$PV_FOR_SCALE"'")]}{.metadata.name}{end}' \
     2>/dev/null || true)
   if [[ -n "$VA_FOR_SCALE" ]]; then
-    kubectl wait --for=delete "volumeattachment/$VA_FOR_SCALE" --timeout=3m
+    kubectl wait --for=delete "volumeattachment/$VA_FOR_SCALE" --timeout=10m
     log "  volume fully detached"
   else
     log "  no VolumeAttachment found; volume already detached"
@@ -368,10 +437,11 @@ metadata:
   namespace: $NAMESPACE
   labels:
     purpose: pg-major-upgrade
-    source-version: "12.16"
+    source-major: "12"
     target-version: "14.22"
 spec:
   backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels:
@@ -507,6 +577,13 @@ ENV_CTYPE
 BASH_BODY
 
   cat <<FOOTER
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
           volumeMounts:
             - name: postgres-data
               mountPath: /bitnami/postgresql
@@ -524,16 +601,14 @@ YAML=$(render_yaml)
 # ============================================================================
 log ""
 log "Rendered Job manifest:"
-echo ""
-printf '%s\n' "$YAML" | sed 's/^/  /'
-echo ""
+echo "" >&2
+printf '%s\n' "$YAML" | sed 's/^/  /' >&2
+echo "" >&2
 
 if $DRY_RUN; then
   log "Dry-run mode — exiting without applying."
   exit 0
 fi
-
-confirm "Apply this Job?" || die "Aborted"
 
 log ""
 log "Applying Job..."
@@ -541,13 +616,13 @@ printf '%s\n' "$YAML" | kubectl -n "$NAMESPACE" apply -f -
 
 log "Waiting for pod to be created and ready..."
 kubectl -n "$NAMESPACE" wait --for=condition=Ready pod \
-  -l "job-name=$JOB_NAME" --timeout=2m 2>&1 || true
+  -l "job-name=$JOB_NAME" --timeout=10m 2>&1 || true
 sleep 3
 
 log "Streaming Job logs (the Job continues running even if you Ctrl-C the stream)..."
-echo ""
+echo "" >&2
 kubectl -n "$NAMESPACE" logs -f "job/$JOB_NAME" 2>&1 || true
-echo ""
+echo "" >&2
 
 # ============================================================================
 # Verify success
@@ -560,7 +635,7 @@ echo ""
 log ""
 log "Waiting for the Job controller to record completion..."
 if kubectl -n "$NAMESPACE" wait --for=condition=Complete \
-     "job/$JOB_NAME" --timeout=2m 2>/dev/null; then
+     "job/$JOB_NAME" --timeout=10m 2>/dev/null; then
   SUCCEEDED=1
 else
   SUCCEEDED=0
@@ -570,16 +645,15 @@ FAILED=$(kubectl -n "$NAMESPACE" get job "$JOB_NAME" \
 
 if [[ "$SUCCEEDED" == "1" ]]; then
   ok "pg_upgrade Job completed successfully."
-  cat <<EOF
+  cat >&2 <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
 NEXT STEPS
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. UPDATE your helm values file. Replace the postgresql block with:
+1. UPDATE your helm values file. Ensure the following three fields under
+   postgresql.image are set to:
 
-  postgresql:
-    image:
       registry: $POSTGRES_IMAGE_REGISTRY
       repository: $POSTGRES_IMAGE_REPOSITORY
       tag: $PG14_TAG
@@ -590,7 +664,10 @@ NEXT STEPS
 
 2. RUN helm upgrade with the updated values:
 
-  helm upgrade <release-name> <chart-path> -f <your-values-file>.yaml
+  helm upgrade circleci-server \\
+    oci://cciserver.azurecr.io/circleci-server \\
+    --version <server-version> \\
+    -f <path-to-your-values-file>
 
   The StatefulSet will roll with the new image and start against the
   upgraded data directory at /bitnami/postgresql/data.
@@ -611,9 +688,11 @@ NEXT STEPS
     kubectl -n $NAMESPACE rollout status "\$d" --timeout=10m
   done
 
-5. AFTER ≥24h of healthy operation, run the Step 7 cleanup from plan.md
-   (delete data-12.preupgrade, delete clone PVC if pre-provisioned,
-   delete the snapshot).
+5. AFTER ≥24h of healthy operation, complete the cleanup steps from
+   README → "Clean up" (step 8): delete the data-12.preupgrade dir inside
+   the postgres pod, delete your snapshot, and delete the clone PVC if
+   you pre-provisioned one. (The upgrade Job auto-deletes 24h after
+   completion via ttlSecondsAfterFinished.)
 ═══════════════════════════════════════════════════════════════════════════════
 EOF
   exit 0
@@ -621,6 +700,6 @@ else
   err "pg_upgrade Job did not complete successfully (succeeded='$SUCCEEDED' failed='$FAILED')."
   err "See logs above for diagnostics. Do not blindly retry — the Job's leftover-dir check"
   err "will refuse re-runs while data-12/data-14/upgrade-logs exist on the PVC."
-  err "Refer to plan.md 'Re-running after failure' for the cleanup procedure."
+  err "See README.md → 'Re-running after a failed Job' for the cleanup procedure."
   exit 1
 fi

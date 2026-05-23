@@ -95,11 +95,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
    ```
    `pg_upgrade` does NOT carry optimizer statistics across — `vacuumdb --analyze-in-stages` rebuilds them and keeps query plans sane. Smoke-test your CircleCI install (log in, trigger a workflow) and watch the postgres logs for any startup warnings.
 
-8. **Clean up.** After at least 24 hours of healthy operation on PG14:
-   - Delete the completed upgrade Job (its pod has terminated, but the Job object stays in the namespace until you remove it):
-     ```
-     kubectl -n <ns> delete job postgres-upgrade-12-to-14
-     ```
+8. **Clean up.** After at least 24 hours of healthy operation on PG14 (the upgrade Job auto-deletes 24h after completion via `ttlSecondsAfterFinished`, so no manual Job deletion is needed):
    - Inside the postgres pod, remove the old data directory left behind by `pg_upgrade`:
      ```
      kubectl -n <ns> exec -it postgresql-0 -- bash
@@ -155,7 +151,8 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 - A standard CircleCI Server internal installation of `postgresql`.
 - Network reachability from your cluster to the registry hosting the PG14 image (ACR by default), with `imagePullSecrets` configured accordingly.
 - Network reachability from your cluster to Docker Hub for the `tianon/postgres-upgrade:12-to-14` utility image used by the Job. If your cluster can't reach Docker Hub, mirror that image to your own registry and pass it via `--upgrade-job-image`.
-- Your application-layer deployments (`layer=application`) scaled to 0 before invocation — the script verifies this and refuses to proceed otherwise. The postgres StatefulSet does *not* need to be scaled in advance; the script handles that.
+- Your application-layer workloads (`layer=application`, Deployments and StatefulSets) scaled to 0 before invocation — the script verifies this and refuses to proceed otherwise. The postgres StatefulSet does *not* need to be scaled in advance; the script handles that.
+- The target namespace does not enforce Pod Security `restricted` admission. The Job needs to run as root (UID 0) for a chown step that bridges the upgrade image's UID 999 and the chart's UID 1001. If your namespace has `pod-security.kubernetes.io/enforce=restricted`, the script will fail pre-flight with a remediation message (temporarily relax the label to `baseline`, run the upgrade, restore).
 
 ## Auto-discovery behavior
 
