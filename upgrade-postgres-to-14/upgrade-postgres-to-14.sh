@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
 # Automates the on-disk Postgres 12 → 14 upgrade for CircleCI Server.
-# - Auto-discovers PVC, secret, and (while postgres is up) source-cluster
-#   encoding/locale. Every value is overridable.
-# - If the postgres StatefulSet is still running when the script starts, it
-#   captures encoding/locale, then scales postgres to 0 and waits for the
-#   underlying volume to detach.
+# - Auto-discovers PVC, secret, and source-cluster encoding/locale. Every
+#   value is overridable.
+# - If the postgres StatefulSet is running, captures encoding/locale, then
+#   scales postgres to 0 and waits for the underlying volume to detach.
+# - If postgres is already at 0 and any --initdb-* flag is missing, briefly
+#   scales postgres back to 1 to query template1, then returns it to 0.
 # - Renders the pg_upgrade Job manifest, applies it, streams logs, and
 #   verifies completion via `kubectl wait --for=condition=Complete`.
 # - On success, prints the helm values block to update and reminds the
@@ -330,22 +331,36 @@ else
 fi
 
 # Postgres StatefulSet state determines what happens next:
-#   - Already at 0 → we proceed directly to applying the Job. Locale must
-#     come from flags or fall back to Job-script defaults.
 #   - Running → capture encoding/locale from the live cluster, then scale
 #     postgres to 0 before applying the Job.
+#   - Already at 0 → if any --initdb-* flag is missing, briefly scale postgres
+#     back to 1 to query template1, then let the standard scale-down path
+#     return it to 0. If postgres won't come up or the query fails, hard-fail
+#     with a remediation message — silently falling back to defaults caused
+#     a pg_upgrade locale-compat abort in earlier runs.
 SS_REPLICAS=$(kubectl -n "$NAMESPACE" get sts postgresql \
   -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "")
 POSTGRES_NEEDS_SCALE=false
+POSTGRES_BOUNCED=false
 if [[ "$SS_REPLICAS" == "0" ]]; then
   log "  postgres StatefulSet replicas: 0 (already quiesced)"
-  if [[ -z "$INITDB_ENCODING" && -z "$INITDB_LC_COLLATE" && -z "$INITDB_LC_CTYPE" ]]; then
-    warn "postgres is already at 0 — cannot auto-discover encoding/locale at this point."
-    warn "Job script defaults will apply: UTF8 / C.UTF-8 / C.UTF-8."
-    warn "If the source cluster uses different settings, pg_upgrade will fail at its locale-compat check."
-    warn "Re-run with --initdb-encoding / --initdb-lc-collate / --initdb-lc-ctype to override."
+  if [[ -n "$INITDB_ENCODING" && -n "$INITDB_LC_COLLATE" && -n "$INITDB_LC_CTYPE" ]]; then
+    log "  initdb (explicitly set):    encoding=$INITDB_ENCODING lc_collate=$INITDB_LC_COLLATE lc_ctype=$INITDB_LC_CTYPE"
   else
-    log "  initdb (explicitly set):    encoding=${INITDB_ENCODING:-<Job default UTF8>} lc_collate=${INITDB_LC_COLLATE:-<Job default C.UTF-8>} lc_ctype=${INITDB_LC_CTYPE:-<Job default C.UTF-8>}"
+    log "  initdb locale not fully specified — temporarily scaling postgres back to 1 to query template1"
+    if $DRY_RUN; then
+      warn "  dry-run: would scale postgres up, query locale, then scale it back down"
+    else
+      kubectl -n "$NAMESPACE" scale sts postgresql --replicas=1 >/dev/null
+      log "  waiting for postgresql-0 to be Ready..."
+      kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/postgresql-0 --timeout=5m >/dev/null \
+        || die "postgres did not become Ready within 5m after scale-up. Either troubleshoot postgres, scale it up yourself and wait until Ready before re-running, or re-run with --initdb-encoding / --initdb-lc-collate / --initdb-lc-ctype set explicitly."
+      discover_locale \
+        || die "postgres came up but template1 locale query failed (auth or psql issue). Re-run with --initdb-encoding / --initdb-lc-collate / --initdb-lc-ctype set explicitly."
+      log "  initdb (discovered after bounce): encoding=$INITDB_ENCODING lc_collate=$INITDB_LC_COLLATE lc_ctype=$INITDB_LC_CTYPE"
+      POSTGRES_NEEDS_SCALE=true
+      POSTGRES_BOUNCED=true
+    fi
   fi
 else
   log "  postgres StatefulSet replicas: $SS_REPLICAS — script will capture locale, then scale it to 0"
@@ -383,7 +398,11 @@ if ! $DRY_RUN; then
   log "═══════════════════════════════════════════════════════════════════"
   log "Planned actions (no further prompts after this one):"
   if $POSTGRES_NEEDS_SCALE; then
-    log "  • Scale StatefulSet 'postgresql' to 0 (takes the database offline)"
+    if $POSTGRES_BOUNCED; then
+      log "  • Scale StatefulSet 'postgresql' back to 0 (was scaled up briefly to read locale)"
+    else
+      log "  • Scale StatefulSet 'postgresql' to 0 (takes the database offline)"
+    fi
     log "  • Wait for the underlying volume to detach"
   fi
   log "  • Apply pg_upgrade Job '$JOB_NAME' against PVC '$PVC_NAME'"

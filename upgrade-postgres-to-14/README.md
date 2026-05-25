@@ -6,9 +6,10 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 
 ## What the script does
 
-- Discovers your PVC name, postgres password secret, and (while postgres is still running) the source-cluster encoding/locale. Every value is overridable.
+- Discovers your PVC name, postgres password secret, and the source-cluster encoding/locale. Every value is overridable.
 - Verifies that your application-layer deployments are scaled to 0 before doing anything.
-- If the postgres StatefulSet is still running, captures encoding/locale from the live cluster and **scales postgres to 0** automatically, then waits for the underlying volume to detach.
+- If the postgres StatefulSet is running, captures encoding/locale from the live cluster and **scales postgres to 0** automatically, then waits for the underlying volume to detach.
+- If postgres is already at 0 and you did not supply all three `--initdb-*` flags, scales postgres back to 1 briefly to read the locale from `template1`, then returns it to 0. If postgres won't come back up the script hard-fails with a remediation message — see [Auto-discovery behavior](#auto-discovery-behavior).
 - Renders a `pg_upgrade` Job manifest, applies it, and streams the Job's logs.
 - Verifies completion by waiting for the Job's `Complete` condition.
 - On success, prints the helm values block to paste into your CircleCI Server values file and the exact `helm upgrade` command to run.
@@ -33,7 +34,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
        "SELECT pg_encoding_to_char(encoding), datcollate, datctype \
         FROM pg_database WHERE datname='template1'"
      ```
-     The script's built-in defaults are `UTF8` / `C.UTF-8` / `C.UTF-8`. Common alternative locales are `en_US.UTF-8` for `LC_COLLATE` / `LC_CTYPE` on some Bitnami builds. If you prefer to scale postgres down yourself (instead of letting the script do it), capture these values *before* scaling and pass them to the script via:
+     The script's built-in defaults are `UTF8` / `C.UTF-8` / `C.UTF-8`. Common alternative locales are `en_US.UTF-8` for `LC_COLLATE` / `LC_CTYPE` on some Bitnami builds. You don't have to capture these manually — if postgres is at 0 when the script starts, it bounces postgres back up briefly to read the locale itself. But if you'd rather skip the bounce, pass the values to the script:
      ```
      ./upgrade-postgres-to-14.sh -n <ns> \
        --initdb-encoding <encoding> \
@@ -61,7 +62,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
    - Apply the `pg_upgrade` Job and stream its logs.
    - Exit 0 once `pg_upgrade` reports `Upgrade Complete` and the new PG14 cluster is in place at `/bitnami/postgresql/data`.
 
-   If you'd rather scale postgres down yourself, do so before invoking the script — but capture encoding/locale *before* you scale, since the script can't query a stopped pod.
+   If you scaled postgres down ahead of time, the script will bounce it back to 1 briefly to read the locale before applying the Job — no manual capture needed. (Pass `--initdb-encoding` / `--initdb-lc-collate` / `--initdb-lc-ctype` if you want to skip the bounce.)
 
 5. **Update your helm values.** On success, the script prints the exact `postgresql:` block to paste into your CircleCI Server values file. The change is in the `postgresql.image` registry/repository/tag — for the default (ACR) run, the diff against the previous PG12 pin looks like:
 
@@ -159,9 +160,9 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 The script reads the cluster to fill in placeholder values, so a typical invocation needs only `--namespace`.
 
 - **PVC name and secret name** are looked up via the `app.kubernetes.io/name=postgresql` label.
-- **Encoding and locale** are queried from the live postgres pod's `template1` catalog when the script starts. Discovery happens *before* the script scales postgres down, so it succeeds in the standard flow. If you'd prefer to scale postgres down yourself before invoking the script, you must pass the values via flags — by the time the script runs, the pod is gone and discovery has no live cluster to query.
+- **Encoding and locale** are queried from the live postgres pod's `template1` catalog when the script starts. Discovery happens *before* the script scales postgres down, so it succeeds in the standard flow. If postgres is already at 0 when the script starts (e.g. you scaled it down yourself), the script briefly scales it back to 1 just to read the locale, then returns it to 0 — so you don't need to remember to pass `--initdb-*` flags. If postgres won't come back up within 5 minutes, or `psql` against `template1` fails, the script hard-fails with a remediation message; re-run after fixing postgres, or pass `--initdb-encoding` / `--initdb-lc-collate` / `--initdb-lc-ctype` explicitly to skip discovery entirely.
 
-If discovery fails or you scaled postgres down ahead of time and didn't pass flags, the script falls back to its built-in defaults (`UTF8` / `C.UTF-8` / `C.UTF-8`) and prints a warning. A mismatch with the source cluster's actual settings causes `pg_upgrade` to abort partway through its consistency checks — see [Pre-flight](#end-to-end-upgrade-procedure) (step 1) for how to override.
+In the rarer case where postgres is running but the live `psql` query fails (e.g. wrong secret key), the script warns and falls back to its built-in defaults (`UTF8` / `C.UTF-8` / `C.UTF-8`). A mismatch with the source cluster's actual settings causes `pg_upgrade` to abort partway through its consistency checks — see [Pre-flight](#end-to-end-upgrade-procedure) (step 1) for how to override.
 
 ## Image source defaults
 
