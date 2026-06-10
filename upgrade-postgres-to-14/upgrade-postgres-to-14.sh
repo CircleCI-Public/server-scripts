@@ -38,11 +38,17 @@ ACR_PATH="cciserver.azurecr.io/circleci/server-postgres"
 DOCKERHUB_PATH="circleci/server-postgres"
 USE_DOCKERHUB=false
 
+# pg_upgrade Job image. Defaults to ACR; --dockerhub switches it to Docker Hub.
+# An explicit --upgrade-job-image overrides both (UPGRADE_JOB_IMAGE starts empty
+# so we can tell whether the operator set it).
+ACR_UPGRADE_IMAGE="cciserver.azurecr.io/server-postgres-upgrade:12-14"
+DOCKERHUB_UPGRADE_IMAGE="circleci/server-postgres-upgrade:12-14"
+
 INITDB_ENCODING=""
 INITDB_LC_COLLATE=""
 INITDB_LC_CTYPE=""
 
-UPGRADE_JOB_IMAGE="circleci/server-postgres-upgrade:12-to-14"
+UPGRADE_JOB_IMAGE=""
 JOB_NAME="postgres-upgrade-12-to-14"
 
 ASSUME_YES=false
@@ -109,7 +115,8 @@ IMAGE SOURCE:
       --dockerhub               Pull server-postgres from Docker Hub instead of ACR
       --acr-path PATH           ACR repo path (default: $ACR_PATH)
       --upgrade-job-image IMG   Image for the pg_upgrade Job
-                                (default: $UPGRADE_JOB_IMAGE)
+                                (default: $ACR_UPGRADE_IMAGE;
+                                 $DOCKERHUB_UPGRADE_IMAGE with --dockerhub)
 
 EXECUTION:
   -y, --yes                     Skip confirmation prompts
@@ -169,9 +176,11 @@ validate "--secret-key" "$SECRET_KEY" '^[A-Za-z0-9._-]+$'
 # ============================================================================
 if $USE_DOCKERHUB; then
   POSTGRES_IMAGE_REPO="$DOCKERHUB_PATH"
+  UPGRADE_JOB_IMAGE="${UPGRADE_JOB_IMAGE:-$DOCKERHUB_UPGRADE_IMAGE}"
   IMAGE_SOURCE_LABEL="Docker Hub"
 else
   POSTGRES_IMAGE_REPO="$ACR_PATH"
+  UPGRADE_JOB_IMAGE="${UPGRADE_JOB_IMAGE:-$ACR_UPGRADE_IMAGE}"
   IMAGE_SOURCE_LABEL="ACR ($ACR_PATH)"
 fi
 FULL_POSTGRES_IMAGE="$POSTGRES_IMAGE_REPO:$PG14_TAG"

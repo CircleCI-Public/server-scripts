@@ -139,9 +139,9 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 | `--initdb-encoding ENC` | discovered, else `UTF8` | New cluster encoding. |
 | `--initdb-lc-collate LOC` | discovered, else `C.UTF-8` | New cluster `LC_COLLATE`. Must match source. |
 | `--initdb-lc-ctype LOC` | discovered, else `C.UTF-8` | New cluster `LC_CTYPE`. Must match source. |
-| `--dockerhub` | off | Pull `server-postgres` from Docker Hub (`circleci/server-postgres`) instead of ACR. |
+| `--dockerhub` | off | Pull both the `server-postgres` image (`circleci/server-postgres`) and the `pg_upgrade` Job image (`circleci/server-postgres-upgrade:12-14`) from Docker Hub instead of ACR. |
 | `--acr-path PATH` | `cciserver.azurecr.io/circleci/server-postgres` | Override the ACR repository path. |
-| `--upgrade-job-image IMG` | `tianon/postgres-upgrade:12-to-14` | Image used by the `pg_upgrade` Job itself (always pulled from Docker Hub). |
+| `--upgrade-job-image IMG` | `cciserver.azurecr.io/server-postgres-upgrade:12-14` (ACR), or `circleci/server-postgres-upgrade:12-14` with `--dockerhub` | Image used by the `pg_upgrade` Job itself. |
 | `-y, --yes` | off | Skip confirmation prompts. |
 | `--dry-run` | off | Render the Job manifest and exit without applying. |
 | `-h, --help` | — | Show usage. |
@@ -151,7 +151,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 - `kubectl` configured for the target cluster (verify with `kubectl config current-context`).
 - A standard CircleCI Server internal installation of `postgresql`.
 - Network reachability from your cluster to the registry hosting the PG14 image (ACR by default), with `imagePullSecrets` configured accordingly.
-- Network reachability from your cluster to Docker Hub for the `tianon/postgres-upgrade:12-to-14` utility image used by the Job. If your cluster can't reach Docker Hub, mirror that image to your own registry and pass it via `--upgrade-job-image`.
+- Network reachability from your cluster to the registry hosting the `pg_upgrade` Job image — by default `cciserver.azurecr.io/server-postgres-upgrade:12-14` from ACR, or `circleci/server-postgres-upgrade:12-14` from Docker Hub with `--dockerhub`. If your cluster can't reach either, mirror that image to your own registry and pass it via `--upgrade-job-image`.
 - Your application-layer workloads (`layer=application`, Deployments and StatefulSets) scaled to 0 before invocation — the script verifies this and refuses to proceed otherwise. The postgres StatefulSet does *not* need to be scaled in advance; the script handles that.
 - The target namespace does not enforce Pod Security `restricted` admission. The Job needs to run as root (UID 0) for a chown step that bridges the upgrade image's UID 999 and the chart's UID 1001. If your namespace has `pod-security.kubernetes.io/enforce=restricted`, the script will fail pre-flight with a remediation message (temporarily relax the label to `baseline`, run the upgrade, restore).
 
@@ -167,7 +167,7 @@ In the rarer case where postgres is running but the live `psql` query fails (e.g
 ## Image source defaults
 
 - **server-postgres image** defaults to `cciserver.azurecr.io/circleci/server-postgres:<tag>` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres:<tag>` from Docker Hub instead, or `--acr-path` to override the ACR path.
-- **pg_upgrade utility image** is `tianon/postgres-upgrade:12-to-14`, always pulled from Docker Hub regardless of `--dockerhub`. If your cluster cannot reach Docker Hub, mirror this image and pass `--upgrade-job-image` accordingly.
+- **pg_upgrade utility image** defaults to `cciserver.azurecr.io/server-postgres-upgrade:12-14` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres-upgrade:12-14` from Docker Hub instead, or `--upgrade-job-image` to point at any other registry (e.g. a mirror).
 
 ## What success looks like
 
