@@ -42,7 +42,7 @@ INITDB_ENCODING=""
 INITDB_LC_COLLATE=""
 INITDB_LC_CTYPE=""
 
-UPGRADE_JOB_IMAGE="tianon/postgres-upgrade:12-to-14"
+UPGRADE_JOB_IMAGE="circleci/server-postgres-upgrade:12-to-14"
 JOB_NAME="postgres-upgrade-12-to-14"
 
 ASSUME_YES=false
