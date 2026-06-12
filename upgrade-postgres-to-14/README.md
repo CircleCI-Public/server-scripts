@@ -120,6 +120,12 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 # Preview the rendered Job manifest without applying
 ./upgrade-postgres-to-14.sh -n circleci-server --dry-run
 
+# Use a custom image pull secret (instead of the default 'regcred')
+./upgrade-postgres-to-14.sh -n circleci-server --image-pull-secret my-acr-secret
+
+# Omit imagePullSecrets entirely (cluster-wide pull credentials already configured)
+./upgrade-postgres-to-14.sh -n circleci-server --image-pull-secret ""
+
 # Fully explicit, no confirmation prompts
 ./upgrade-postgres-to-14.sh -n circleci-server \
   --pvc-name data-postgresql-0 --secret-name postgresql \
@@ -142,6 +148,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 | `--dockerhub` | off | Pull both the `server-postgres` image (`circleci/server-postgres`) and the `pg_upgrade` Job image (`circleci/server-postgres-upgrade:12-14`) from Docker Hub instead of ACR. |
 | `--acr-path PATH` | `cciserver.azurecr.io/circleci/server-postgres` | Override the ACR repository path. |
 | `--upgrade-job-image IMG` | `cciserver.azurecr.io/server-postgres-upgrade:12-14` (ACR), or `circleci/server-postgres-upgrade:12-14` with `--dockerhub` | Image used by the `pg_upgrade` Job itself. |
+| `--image-pull-secret NAME` | `regcred` | `imagePullSecrets` entry added to the upgrade Job pod spec. Pass an empty string (`--image-pull-secret ""`) to omit `imagePullSecrets` entirely (e.g. if your cluster already has cluster-wide pull credentials). |
 | `-y, --yes` | off | Skip confirmation prompts. |
 | `--dry-run` | off | Render the Job manifest and exit without applying. |
 | `-h, --help` | — | Show usage. |
@@ -150,7 +157,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 
 - `kubectl` configured for the target cluster (verify with `kubectl config current-context`).
 - A standard CircleCI Server internal installation of `postgresql`.
-- Network reachability from your cluster to the registry hosting the PG14 image (ACR by default), with `imagePullSecrets` configured accordingly.
+- Network reachability from your cluster to the registry hosting the PG14 image (ACR by default), with pull credentials available. The script adds `imagePullSecrets: [{name: regcred}]` to the upgrade Job by default; use `--image-pull-secret` to specify a different secret name, or `--image-pull-secret ""` to omit it if your cluster has cluster-wide pull credentials.
 - Network reachability from your cluster to the registry hosting the `pg_upgrade` Job image — by default `cciserver.azurecr.io/server-postgres-upgrade:12-14` from ACR, or `circleci/server-postgres-upgrade:12-14` from Docker Hub with `--dockerhub`. If your cluster can't reach either, mirror that image to your own registry and pass it via `--upgrade-job-image`.
 - Your application-layer workloads (`layer=application`, Deployments and StatefulSets) scaled to 0 before invocation — the script verifies this and refuses to proceed otherwise. The postgres StatefulSet does *not* need to be scaled in advance; the script handles that.
 - The target namespace does not enforce Pod Security `restricted` admission. The Job needs to run as root (UID 0) for a chown step that bridges the upgrade image's UID 999 and the chart's UID 1001. If your namespace has `pod-security.kubernetes.io/enforce=restricted`, the script will fail pre-flight with a remediation message (temporarily relax the label to `baseline`, run the upgrade, restore).
@@ -168,6 +175,7 @@ In the rarer case where postgres is running but the live `psql` query fails (e.g
 
 - **server-postgres image** defaults to `cciserver.azurecr.io/circleci/server-postgres:<tag>` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres:<tag>` from Docker Hub instead, or `--acr-path` to override the ACR path.
 - **pg_upgrade utility image** defaults to `cciserver.azurecr.io/server-postgres-upgrade:12-14` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres-upgrade:12-14` from Docker Hub instead, or `--upgrade-job-image` to point at any other registry (e.g. a mirror).
+- **Image pull secret** — the upgrade Job pod spec includes `imagePullSecrets: [{name: regcred}]` by default. Override with `--image-pull-secret <name>` to use a different secret, or pass `--image-pull-secret ""` to omit the field entirely.
 
 ## What success looks like
 

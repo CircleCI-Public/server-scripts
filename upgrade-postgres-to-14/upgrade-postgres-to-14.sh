@@ -51,6 +51,8 @@ INITDB_LC_CTYPE=""
 UPGRADE_JOB_IMAGE=""
 JOB_NAME="postgres-upgrade-12-to-14"
 
+IMAGE_PULL_SECRET="regcred"
+
 ASSUME_YES=false
 DRY_RUN=false
 
@@ -117,6 +119,8 @@ IMAGE SOURCE:
       --upgrade-job-image IMG   Image for the pg_upgrade Job
                                 (default: $ACR_UPGRADE_IMAGE;
                                  $DOCKERHUB_UPGRADE_IMAGE with --dockerhub)
+      --image-pull-secret NAME  imagePullSecret for the upgrade Job (default: $IMAGE_PULL_SECRET)
+                                Pass an empty string to omit imagePullSecrets entirely
 
 EXECUTION:
   -y, --yes                     Skip confirmation prompts
@@ -149,6 +153,7 @@ while [[ $# -gt 0 ]]; do
         --dockerhub)        USE_DOCKERHUB=true; shift ;;
         --acr-path)         ACR_PATH="$2"; shift 2 ;;
         --upgrade-job-image) UPGRADE_JOB_IMAGE="$2"; shift 2 ;;
+        --image-pull-secret) IMAGE_PULL_SECRET="$2"; shift 2 ;;
     -y|--yes)               ASSUME_YES=true; shift ;;
         --dry-run)          DRY_RUN=true; shift ;;
     -h|--help)              usage; exit 0 ;;
@@ -170,6 +175,7 @@ validate "--secret-key" "$SECRET_KEY" '^[A-Za-z0-9._-]+$'
 [[ -n "$INITDB_ENCODING"   ]] && validate "--initdb-encoding"   "$INITDB_ENCODING"   '^[A-Za-z0-9._@-]+$'
 [[ -n "$INITDB_LC_COLLATE" ]] && validate "--initdb-lc-collate" "$INITDB_LC_COLLATE" '^[A-Za-z0-9._@-]+$'
 [[ -n "$INITDB_LC_CTYPE"   ]] && validate "--initdb-lc-ctype"   "$INITDB_LC_CTYPE"   '^[A-Za-z0-9._@-]+$'
+[[ -n "$IMAGE_PULL_SECRET" ]] && validate "--image-pull-secret" "$IMAGE_PULL_SECRET" '^[a-z0-9][a-z0-9.-]*$'
 
 # ============================================================================
 # Resolve image source
@@ -480,6 +486,16 @@ spec:
         runAsUser: 0
         runAsGroup: 0
         fsGroup: 0
+HEADER
+
+  if [[ -n "$IMAGE_PULL_SECRET" ]]; then
+    cat <<PULL_SECRET
+      imagePullSecrets:
+        - name: $IMAGE_PULL_SECRET
+PULL_SECRET
+  fi
+
+  cat <<CONTAINERS
       containers:
         - name: pg-upgrade
           image: $UPGRADE_JOB_IMAGE
@@ -490,7 +506,7 @@ spec:
                 secretKeyRef:
                   name: $SECRET_NAME
                   key: $SECRET_KEY
-HEADER
+CONTAINERS
 
   [[ -n "$INITDB_ENCODING" ]] && cat <<ENV_ENC
             - name: INITDB_ENCODING
