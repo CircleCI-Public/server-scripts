@@ -1,6 +1,6 @@
 # CircleCI Server: Postgres 12 → 14 upgrade script
 
-NOTE: This script is intended only for server version 4.9 and after. 
+NOTE: This script is intended only for server versions 4.9 and after. 
 
 `upgrade-postgres-to-14.sh` automates the on-disk PostgreSQL major-version upgrade inside your CircleCI Server installation. It renders and applies a one-shot Kubernetes Job that runs `pg_upgrade --link` against your existing Postgres PVC, then prints the helm values block to update and the `helm upgrade` command to run.
 
