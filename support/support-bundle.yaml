@@ -48,6 +48,24 @@ spec:
       args: ["-c","df -h /bitnami/mongodb"]
       timeout: 10s
   - exec:
+      name: mongodb-diagnostic-data-compress
+      selector:
+        - app.kubernetes.io/name=mongodb
+      command: ["/bin/sh"]
+      args:
+        - "-c"
+        - |
+          mkdir -p /tmp/diagnostic.data && \
+          cp /bitnami/mongodb/data/db/diagnostic.data/metrics.interim /tmp/diagnostic.data/metrics.interim && \
+          find /bitnami/mongodb/data/db/diagnostic.data -name 'metrics.*' ! -name 'metrics.interim' | sort | tail -2 | xargs -I{} cp {} /tmp/diagnostic.data/ && \
+          tar czf /tmp/mongo-diagnostic.tar.gz -C /tmp diagnostic.data
+      timeout: 120s
+  - copy:
+      name: mongodb-diagnostic-data
+      selector:
+        - app.kubernetes.io/name=mongodb
+      containerPath: /tmp/mongo-diagnostic.tar.gz
+  - exec:
       name: pvc-vault
       selector:
         - app=vault
