@@ -70,7 +70,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
     postgresql:
       image:
         registry: cciserver.azurecr.io
-        repository: circleci/server-postgres
+        repository: server-postgres
         tag: 14.22.4094-4922444
    ```
 
@@ -140,7 +140,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 | `--initdb-lc-collate LOC` | discovered, else `C.UTF-8` | New cluster `LC_COLLATE`. Must match source. |
 | `--initdb-lc-ctype LOC` | discovered, else `C.UTF-8` | New cluster `LC_CTYPE`. Must match source. |
 | `--dockerhub` | off | Pull `server-postgres` from Docker Hub (`circleci/server-postgres`) instead of ACR. |
-| `--acr-path PATH` | `cciserver.azurecr.io/circleci/server-postgres` | Override the ACR repository path. |
+| `--acr-path PATH` | `cciserver.azurecr.io/server-postgres` | Override the ACR repository path. |
 | `--upgrade-job-image IMG` | `tianon/postgres-upgrade:12-to-14` | Image used by the `pg_upgrade` Job itself (always pulled from Docker Hub). |
 | `-y, --yes` | off | Skip confirmation prompts. |
 | `--dry-run` | off | Render the Job manifest and exit without applying. |
@@ -166,7 +166,7 @@ In the rarer case where postgres is running but the live `psql` query fails (e.g
 
 ## Image source defaults
 
-- **server-postgres image** defaults to `cciserver.azurecr.io/circleci/server-postgres:<tag>` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres:<tag>` from Docker Hub instead, or `--acr-path` to override the ACR path.
+- **server-postgres image** defaults to `cciserver.azurecr.io/server-postgres:<tag>` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres:<tag>` from Docker Hub instead, or `--acr-path` to override the ACR path.
 - **pg_upgrade utility image** is `tianon/postgres-upgrade:12-to-14`, always pulled from Docker Hub regardless of `--dockerhub`. If your cluster cannot reach Docker Hub, mirror this image and pass `--upgrade-job-image` accordingly.
 
 ## What success looks like
@@ -183,7 +183,7 @@ NEXT STEPS
   postgresql:
     image:
       registry: cciserver.azurecr.io
-      repository: circleci/server-postgres
+      repository: server-postgres
       tag: 14.22.4094-4922444
 
 2. RUN helm upgrade ...

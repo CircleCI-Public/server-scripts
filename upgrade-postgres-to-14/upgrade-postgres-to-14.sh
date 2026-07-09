@@ -34,7 +34,7 @@ SECRET_NAME=""
 SECRET_KEY="postgres-password"
 PG14_TAG="14.22.4094-4922444"
 
-ACR_PATH="cciserver.azurecr.io/circleci/server-postgres"
+ACR_PATH="cciserver.azurecr.io/server-postgres"
 DOCKERHUB_PATH="circleci/server-postgres"
 USE_DOCKERHUB=false
 
