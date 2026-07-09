@@ -72,7 +72,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
     postgresql:
       image:
         registry: cciserver.azurecr.io
-        repository: circleci/server-postgres
+        repository: server-postgres
         tag: 14.22.4094-4922444
    ```
 
@@ -148,7 +148,7 @@ The full upgrade procedure — including platform-specific guidance on snapshots
 | `--initdb-lc-collate LOC` | discovered, else `C.UTF-8` | New cluster `LC_COLLATE`. Must match source. |
 | `--initdb-lc-ctype LOC` | discovered, else `C.UTF-8` | New cluster `LC_CTYPE`. Must match source. |
 | `--dockerhub` | off | Pull both the `server-postgres` image (`circleci/server-postgres`) and the `pg_upgrade` Job image (`circleci/server-postgres-upgrade:12-14`) from Docker Hub instead of ACR. |
-| `--acr-path PATH` | `cciserver.azurecr.io/circleci/server-postgres` | Override the ACR repository path. |
+| `--acr-path PATH` | `cciserver.azurecr.io/server-postgres` | Override the ACR repository path. |
 | `--upgrade-job-image IMG` | `cciserver.azurecr.io/server-postgres-upgrade:12-14` (ACR), or `circleci/server-postgres-upgrade:12-14` with `--dockerhub` | Image used by the `pg_upgrade` Job itself. |
 | `--image-pull-secret NAME` | `regcred` | `imagePullSecrets` entry added to the upgrade Job pod spec. Pass an empty string (`--image-pull-secret ""`) to omit `imagePullSecrets` entirely (e.g. if your cluster already has cluster-wide pull credentials). |
 | `-y, --yes` | off | Skip confirmation prompts. |
@@ -175,7 +175,7 @@ In the rarer case where postgres is running but the live `psql` query fails (e.g
 
 ## Image source defaults
 
-- **server-postgres image** defaults to `cciserver.azurecr.io/circleci/server-postgres:<tag>` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres:<tag>` from Docker Hub instead, or `--acr-path` to override the ACR path.
+- **server-postgres image** defaults to `cciserver.azurecr.io/server-postgres:<tag>` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres:<tag>` from Docker Hub instead, or `--acr-path` to override the ACR path.
 - **pg_upgrade utility image** defaults to `cciserver.azurecr.io/server-postgres-upgrade:12-14` from CircleCI's ACR. Use `--dockerhub` to pull `circleci/server-postgres-upgrade:12-14` from Docker Hub instead, or `--upgrade-job-image` to point at any other registry (e.g. a mirror).
 - **Image pull secret** — the upgrade Job pod spec includes `imagePullSecrets: [{name: regcred}]` by default. Override with `--image-pull-secret <name>` to use a different secret, or pass `--image-pull-secret ""` to omit the field entirely.
 
@@ -193,7 +193,7 @@ NEXT STEPS
   postgresql:
     image:
       registry: cciserver.azurecr.io
-      repository: circleci/server-postgres
+      repository: server-postgres
       tag: 14.22.4094-4922444
 
 2. RUN helm upgrade ...
