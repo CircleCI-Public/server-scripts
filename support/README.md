@@ -1,30 +1,39 @@
-# CircleCI Helm Chart Support Bundle
-This directory contains a support bundle for troubleshoot.sh. It allows users to collect and sanitize information about a specific install, to send to support for additional debugging.
+# CircleCI Server Support Bundle
 
-The manifests defined in this directory are client-side, and install no resources on the cluster.
+This directory contains support bundle configs for [troubleshoot.sh](https://troubleshoot.sh). They collect and sanitize diagnostic information from a CircleCI Server install to share with the support team.
 
+The manifests defined here are client-side and install no resources on the cluster.
 
 ## Prerequisites
 
-1. First, make sure circleci-server is deployed and you have access to the cluster/namespace through kubectl.
-2. Next, [install krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/).
-
-
-3. Install preflight and support bundle to your local development machine.
+1. Make sure CircleCI Server is deployed and you have access to the cluster via `kubectl`. For the namespace-scoped bundle, your kubeconfig must have `get`/`list` permissions on pods, logs, deployments, and events in the target namespace, plus cluster-level read access for `clusterResources`.
+2. [Install krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/).
+3. Install the support-bundle plugin:
 
 ```bash
-kubectl krew install preflight
 kubectl krew install support-bundle
 ```
 
-## Collecting Support Information (Development)
+## Collecting Support Information
 
-### Collecting Information
-When ready, run the support bundle from the current directory and wait for it to finish.
+### Namespace-scoped (recommended)
+
+Use `run.sh` to collect data from a specific namespace. Defaults to `circleci-server`:
 
 ```bash
-# Within the server/support directory
-kubectl support-bundle support-bundle.yaml
+# From the repo root
+./support/run.sh
+
+# Custom namespace
+./support/run.sh my-namespace
 ```
 
-A sanitized .tar.gz file will be created in the current directory - this can be sent to the support team for further debugging.
+### Cluster-wide
+
+To collect from all namespaces (useful when the install namespace is unknown):
+
+```bash
+kubectl support-bundle support/support-bundle.yaml
+```
+
+A sanitized `.tar.gz` will be created in the current directory. Attach it to your support ticket.

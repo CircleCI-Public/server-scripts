@@ -1,0 +1,306 @@
+apiVersion: troubleshoot.sh/v1beta2
+kind: SupportBundle
+metadata:
+  name: circleci-server
+spec:
+  collectors:
+  - clusterInfo: {}
+  - clusterResources:
+      namespaces:
+        - circleci-server
+  - logs:
+      selector:
+      - layer=application
+      name: application
+      namespace: circleci-server
+  - logs:
+      selector:
+      - layer=data
+      name: data
+      namespace: circleci-server
+  - logs:
+      selector:
+      - layer=execution
+      name: nomad
+      namespace: circleci-server
+  - exec:
+      name: nomad-status
+      selector:
+        - app=nomad-server
+        - layer=execution
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","nomad node status && echo && nomad server members && echo && nomad status"]
+      timeout: 10s
+  - exec:
+      name: rabbitmq-list-queues
+      selector:
+        - app.kubernetes.io/name=rabbitmq
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","rabbitmqctl list_queues"]
+      timeout: 10s
+  - exec:
+      name: pvc-postgres
+      selector:
+        - app.kubernetes.io/name=postgresql
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","df -h /bitnami/postgresql"]
+      timeout: 10s
+  - exec:
+      name: pvc-mongodb
+      selector:
+        - app.kubernetes.io/name=mongodb
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","df -h /bitnami/mongodb"]
+      timeout: 10s
+  - exec:
+      name: mongodb-diagnostic-data-compress
+      selector:
+        - app.kubernetes.io/name=mongodb
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args:
+        - "-c"
+        - |
+          mkdir -p /tmp/diagnostic.data && \
+          cp /bitnami/mongodb/data/db/diagnostic.data/metrics.interim /tmp/diagnostic.data/metrics.interim && \
+          find /bitnami/mongodb/data/db/diagnostic.data -name 'metrics.*' ! -name 'metrics.interim' | sort | tail -2 | xargs -I{} cp {} /tmp/diagnostic.data/ && \
+          tar czf /tmp/mongo-diagnostic.tar.gz -C /tmp diagnostic.data
+      timeout: 120s
+  - copy:
+      name: mongodb-diagnostic-data
+      selector:
+        - app.kubernetes.io/name=mongodb
+      namespace: circleci-server
+      containerPath: /tmp/mongo-diagnostic.tar.gz
+  - exec:
+      name: pvc-vault
+      selector:
+        - app=vault
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","df -h /vault/file"]
+      timeout: 10s
+  - exec:
+      name: pvc-redis
+      selector:
+        - app=redis
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","df -h /data"]
+      timeout: 10s
+  - exec:
+      name: pvc-rabbitmq
+      selector:
+        - app.kubernetes.io/name=rabbitmq
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","df -h /bitnami/rabbitmq/mnesia"]
+      timeout: 10s
+  - exec:
+      name: server-version
+      selector:
+        - app.kubernetes.io/name=rabbitmq
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c","curl -k https://kong/version"]
+      timeout: 10s
+  - exec:
+      name: server-version
+      selector:
+      #Needs to be changed to www-api in 5.0
+      #Can also change to https:// at a later date
+        - app=frontend
+      namespace: circleci-server
+      command: ["/bin/sh"]
+      args: ["-c", "curl -s \"http://circleci-proxy-acm.$K8S_POD_NAMESPACE.svc.cluster.local/version\" || curl -s \"http://circleci-proxy.$K8S_POD_NAMESPACE.svc.cluster.local/version\""]
+      timeout: 10s
+  redactors:
+  - name: Redact Object storage credentials
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: __ACCESS_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __SECRET_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: AWS_ACCESS_KEY_ID
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: AWS_SECRET_ACCESS_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact ring session encryption key
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: CIRCLE_SECRETS__SESSION_COOKIE_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact Github OAuth credentials
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: CLIENT_ID
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: CLIENT_SECRET
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact soketi secret
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: PUSHER__SECRET
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: DEFAULT_APP_SECRET
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: keyczar encryption and signing keys
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: KEYSET__
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __KEYSET
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: JSON_WEB_KEYS
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact database passwords
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: PGPASSWORD
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: _PASSWORD
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __PASSWORD
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: SMTP__PASS
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact API and service tokens
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: _TOKEN
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: __TOKEN
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact encryption keys, passphrases, and salts
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: ENCRYPTION_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: ENCRYPT_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: PASSPHRASE
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: _SALT
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: SALTS__
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact Pusher/soketi app keys
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: DEFAULT_APP_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: PUSHER_APP_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: PUSHER__KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact third-party API keys and TLS private keys
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - selector: SEGMENT_API_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: API_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+      - selector: SSL_CERT_KEY
+        redactor: '("value": ")(?P<mask>.*)(")'
+
+  - name: Redact Authorization and cookie headers in logs
+    removals:
+      regex:
+      - redactor: '(?i)(Authorization"?\s*[:=]\s*"?)(?P<mask>(Bearer\s+|Basic\s+)?[A-Za-z0-9._\-+/=]+)'
+      - redactor: '(?i)(X-Api-Token"?\s*[:=]\s*"?)(?P<mask>[A-Za-z0-9._\-+/=]+)'
+      - redactor: '(?i)(Circle-Token"?\s*[:=]\s*"?)(?P<mask>[A-Za-z0-9._\-+/=]+)'
+      - redactor: '(?i)((Set-)?Cookie"?\s*[:=]\s*"?)(?P<mask>[^"\r\n]+)'
+
+  # Removes passwords from URI's of the form <scheme>://<user>:<password>@<host>:<port>
+  - name: Redact passwords from URIs
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - redactor: '(?P<value>"value": ")(?P<scheme>[^:]*)(://)(?P<user>[^:]*)(:)(?P<mask>[^@]*)@(?P<hostname>[^(:|/)]*)(?P<rest>.*)(")'
+
+  # JDBC URI's put the password in the query string of the URI instead of the
+  # user information section of the URI. This removes password=<password>
+  # structured parts
+  - name: Redact passwords from JDBC URIs
+    fileSelector:
+      files:
+      - cluster-resources/pods/*.json
+      - cluster-resources/deployments/*.json
+    removals:
+      regex:
+      - redactor: '(?P<key>password=)(?P<mask>.*)'
+
+  # An annotation on deployments holds the previously applied configuration. It contains much
+  # of the environment variable section from the deployment but JSON escaped which can make the
+  # default redactions fail. We redact the entire annotation here to avoid leakage.
+  - name: last applied configuration annotation
+    removals:
+      regex:
+      - redactor: '("kubectl\.kubernetes\.io/last-applied-configuration": ")(?P<mask>.+)(")'
+
+  # Mask <local>@<label1>.<label2> only. For plain 2-level emails this masks the
+  # whole address. For SSH remotes (git@github.example.net) and service hostnames
+  # (rabbit@rabbitmq-0.rabbitmq-headless.svc.cluster.local) the additional labels
+  # past the first two stay visible for debugging.
+  - name: Redact customer employee email addresses in logs
+    removals:
+      regex:
+      - redactor: '(?P<mask>[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+\.[A-Za-z0-9\-]+)'
+  analyzers: []
