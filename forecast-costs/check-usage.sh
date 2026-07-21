@@ -120,7 +120,7 @@ fi
 SQL=$(cat <<ENDSQL
 WITH job_stats AS (
     SELECT
-        COUNT(*)                                                                        AS total_jobs,
+        COUNT(1)                                                                        AS total_jobs,
         ROUND(SUM(EXTRACT(EPOCH FROM (e.ended_at - s.started_at)) / 60)::numeric, 2)   AS total_minutes
     FROM public.job_started_events s
     JOIN public.job_ended_events e ON e.job_id = s.job_id
