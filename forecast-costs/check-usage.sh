@@ -106,7 +106,7 @@ echo ""
 # because the ordering is only approximately chronological, so a single stale row
 # is not proof that the window has ended.
 # ------------------------------------------------------------------------------
-printf 'slug\tvcs\tnum\n' > "$WORK/in_window.tsv"
+printf 'slug\tvcs\n' > "$WORK/in_window.tsv"
 offset=0
 scanned=0
 while [[ "$scanned" -lt "$MAX_BUILDS" ]]; do
@@ -134,8 +134,8 @@ while [[ "$scanned" -lt "$MAX_BUILDS" ]]; do
   jq -r --arg cutoff "$CUTOFF" '
     .[] | select(((.start_time // .queued_at) // "") >= $cutoff)
         | [ ((.username // "-") + "/" + (.reponame // "-") + "/" + (.build_num|tostring)),
-            (if (.vcs_url // "") | test("bitbucket") then "bitbucket" else "github" end),
-            (.build_num|tostring) ] | @tsv' "$WORK/page.json" >> "$WORK/in_window.tsv"
+            (if (.vcs_url // "") | test("bitbucket") then "bitbucket" else "github" end)
+          ] | @tsv' "$WORK/page.json" >> "$WORK/in_window.tsv"
 
   fresh="$(jq -r --arg cutoff "$CUTOFF" \
     '[.[] | select(((.start_time // .queued_at) // "") >= $cutoff)] | length' "$WORK/page.json")"
@@ -164,7 +164,7 @@ echo "Reading resource class and executor for $IN_WINDOW builds..." >&2
 printf 'num\tproject\tjob\texecutor\tclass\tcpu\tram_mb\tparallel\tms\tstarted\tdlc\n' > "$BUILDS"
 
 done_n=0
-while IFS=$'\t' read -r slug vcs num; do
+while IFS=$'\t' read -r slug vcs; do
   [[ "$slug" == "slug" ]] && continue
   if api "$SERVER_URL/api/v1.1/project/$vcs/$slug" -o "$WORK/d.json" 2>/dev/null; then
     jq -r '[ (.build_num|tostring),
